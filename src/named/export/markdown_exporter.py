@@ -1,0 +1,181 @@
+"""Markdown report exporter."""
+
+from datetime import datetime
+from pathlib import Path
+
+from named.analysis.extractor import Symbol
+from named.validation.validator import ValidationResult
+
+
+def export_markdown(
+    results: list[ValidationResult],
+    symbols: list[Symbol],
+    output_path: Path,
+    project_path: Path,
+    model: str = "gpt-4o",
+) -> Path:
+    """Export analysis results to Markdown format.
+
+    Args:
+        results: List of validation results
+        symbols: List of analyzed symbols
+        output_path: Path to write the Markdown file
+        project_path: Path to the analyzed project
+        model: LLM model used for analysis
+
+    Returns:
+        Path to the created Markdown file
+    """
+    content = _build_markdown_content(results, symbols, project_path, model)
+
+    # Ensure output directory exists
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Write Markdown file
+    md_path = output_path if output_path.suffix == ".md" else output_path / "report.md"
+    md_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with open(md_path, "w", encoding="utf-8") as f:
+        f.write(content)
+
+    return md_path
+
+
+def _build_markdown_content(
+    results: list[ValidationResult],
+    symbols: list[Symbol],
+    project_path: Path,
+    model: str,
+) -> str:
+    """Build the Markdown report content."""
+    # Calculate statistics
+    total_symbols = len(symbols)
+    suggestions_count = sum(1 for r in results if r.suggestion.suggested_name)
+    valid_suggestions = sum(1 for r in results if r.is_valid and r.suggestion.suggested_name)
+    blocked_count = sum(1 for r in results if r.suggestion.blocked)
+
+    # High confidence suggestions (>= 0.85)
+    high_confidence = [
+        r for r in results
+        if r.suggestion.suggested_name and r.suggestion.confidence >= 0.85
+    ]
+
+    # Count violations by rule
+    violations_by_rule: dict[str, int] = {}
+    for result in results:
+        for rule_id in result.suggestion.rules_addressed:
+            violations_by_rule[rule_id] = violations_by_rule.get(rule_id, 0) + 1
+
+    content = f"""# Named Analysis Report
+
+**Generated**: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+**Project**: `{project_path.absolute()}`
+**Model**: {model}
+
+---
+
+## Summary
+
+| Metric | Value |
+|--------|-------|
+| Total Symbols Analyzed | {total_symbols} |
+| Suggestions Generated | {suggestions_count} |
+| Valid Suggestions | {valid_suggestions} |
+| Blocked by Guardrails | {blocked_count} |
+
+"""
+
+    # Violations by rule
+    if violations_by_rule:
+        content += """## Violations by Rule
+
+| Rule | Count |
+|------|-------|
+"""
+        for rule_id, count in sorted(violations_by_rule.items()):
+            content += f"| {rule_id} | {count} |\n"
+        content += "\n"
+
+    # High confidence suggestions
+    if high_confidence:
+        content += """## Recommended Changes (High Confidence)
+
+These suggestions have confidence >= 0.85 and should be safe to apply.
+
+"""
+        for result in sorted(high_confidence, key=lambda r: -r.suggestion.confidence):
+            s = result.suggestion
+            content += f"""### `{s.original_name}` → `{s.suggested_name}`
+
+- **Kind**: {s.symbol_kind}
+- **Confidence**: {s.confidence:.0%}
+- **Rationale**: {s.rationale}
+- **Rules Addressed**: {', '.join(s.rules_addressed) or 'N/A'}
+"""
+            # Add references if available
+            if hasattr(s, 'references') and s.references:
+                content += f"- **Used in {len(s.references)} location(s)**:\n"
+                for ref in s.references[:10]:  # Limit to 10 references
+                    content += f"  - {ref.file.name}:{ref.line} → `{ref.code_snippet.strip()}`\n"
+                if len(s.references) > 10:
+                    content += f"  - ... and {len(s.references) - 10} more\n"
+
+            content += "\n"
+
+    # All suggestions
+    all_valid = [r for r in results if r.is_valid and r.suggestion.suggested_name]
+    if all_valid:
+        content += """## All Valid Suggestions
+
+| Original | Suggested | Kind | Confidence | Rules |
+|----------|-----------|------|------------|-------|
+"""
+        for result in sorted(all_valid, key=lambda r: -r.suggestion.confidence):
+            s = result.suggestion
+            rules = ", ".join(s.rules_addressed) if s.rules_addressed else "-"
+            content += f"| `{s.original_name}` | `{s.suggested_name}` | {s.symbol_kind} | {s.confidence:.0%} | {rules} |\n"
+        content += "\n"
+
+    # Blocked symbols
+    blocked = [r for r in results if r.suggestion.blocked]
+    if blocked:
+        content += """## Blocked Symbols
+
+These symbols were not renamed due to guardrail restrictions.
+
+| Symbol | Kind | Reason |
+|--------|------|--------|
+"""
+        for result in blocked:
+            s = result.suggestion
+            reason = s.blocked_reason or "Unknown"
+            content += f"| `{s.original_name}` | {s.symbol_kind} | {reason} |\n"
+        content += "\n"
+
+    # Footer
+    content += """---
+
+*Report generated by [Named](https://github.com/your-org/named) - Intelligent Java Code Refactoring System*
+"""
+
+    return content
+
+
+def export_markdown_string(
+    results: list[ValidationResult],
+    symbols: list[Symbol],
+    project_path: Path,
+    model: str = "gpt-4o",
+) -> str:
+    """Export analysis results to Markdown string.
+
+    Args:
+        results: List of validation results
+        symbols: List of analyzed symbols
+        project_path: Path to the analyzed project
+        model: LLM model used
+
+    Returns:
+        Markdown string
+    """
+    return _build_markdown_content(results, symbols, project_path, model)
