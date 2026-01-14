@@ -1,11 +1,11 @@
 """Tests for the Java parser and symbol extractor."""
 
-import pytest
 from pathlib import Path
 
-from named.analysis.parser import parse_java_file, find_java_files, JavaParseError
-from named.analysis.extractor import extract_symbols
+import pytest
 
+from named.analysis.extractor import extract_symbols
+from named.analysis.parser import find_java_files, parse_java_file
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 SAMPLE_FILE = FIXTURES_DIR / "SampleService.java"

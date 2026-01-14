@@ -1,8 +1,9 @@
 """Render rules and guardrails for LLM prompts."""
 
-from named.rules.models import NamingRule, RuleCategory
-from named.rules.naming_rules import NAMING_RULES
+from named.prompts import get_rules_context as get_rules_context_new
 from named.rules.guardrails import GUARDRAILS
+from named.rules.models import RuleCategory
+from named.rules.naming_rules import NAMING_RULES
 
 
 class PromptRenderer:
@@ -66,30 +67,10 @@ class PromptRenderer:
         Returns:
             Complete formatted context including all rules and guardrails
         """
-        return f"""# Banking Code Quality - Naming Rules
-
-You are an expert Java developer helping to improve code quality by suggesting better names for identifiers.
-You must analyze Java code and suggest name improvements following these rules:
-
-{self.render_all_rules()}
-
-{self.render_guardrails()}
-
-## Output Requirements
-
-1. Only suggest changes when you have **confidence >= 0.80**
-2. Provide rationale referencing specific rule IDs (e.g., "Violates R1_REVEAL_INTENT")
-3. Return suggestions in valid JSON format
-4. If a symbol has a blocking annotation (see guardrails above), do NOT suggest renaming it
-5. Consider the context: method purpose, class responsibility, parameter meaning
-
-## Confidence Guidelines
-
-- 0.95-1.00: Obvious violation with clear fix (e.g., `data` → `customerRecord`)
-- 0.85-0.94: Clear violation with good suggested fix
-- 0.80-0.84: Probable violation, reasonable fix
-- Below 0.80: Don't suggest (uncertain or context-dependent)
-"""
+        # Use the new prompts module for rules context
+        return get_rules_context_new(
+            rules=NAMING_RULES, guardrails=GUARDRAILS, include_schema=False
+        )
 
     def render_for_symbol_analysis(
         self,

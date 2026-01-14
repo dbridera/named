@@ -1,7 +1,10 @@
 """Build prompts for LLM analysis."""
 
 from named.analysis.extractor import Symbol
-from named.rules.prompt_renderer import PromptRenderer, get_llm_rules_context
+from named.prompts import get_batch_analysis_prompt, get_rules_context
+from named.rules.guardrails import GUARDRAILS
+from named.rules.naming_rules import NAMING_RULES
+from named.rules.prompt_renderer import PromptRenderer
 
 
 def build_suggestion_prompt(symbol: Symbol, lang: str = "en") -> str:
@@ -36,55 +39,24 @@ def build_batch_prompt(symbols: list[Symbol], lang: str = "en") -> str:
     Returns:
         Complete prompt string
     """
-    rules_context = get_llm_rules_context(lang)
-
-    symbols_text = "\n\n".join(
-        f"### Symbol {i+1}\n"
-        f"- **Name**: `{s.name}`\n"
-        f"- **Kind**: {s.kind}\n"
-        f"- **Annotations**: {', '.join(f'@{a}' for a in s.annotations) or 'None'}\n"
-        f"- **Context**: {s.context[:200]}..."
-        for i, s in enumerate(symbols)
+    # Get rules context from new prompts module
+    rules_context = get_rules_context(
+        rules=NAMING_RULES, guardrails=GUARDRAILS, include_schema=False
     )
 
-    return f"""{rules_context}
+    # Convert symbols to dict format for batch analysis
+    symbols_dicts = [
+        {
+            "name": s.name,
+            "kind": s.kind,
+            "annotations": ", ".join(f"@{a}" for a in s.annotations) or "None",
+            "context": s.context[:200] if s.context else "N/A",
+        }
+        for s in symbols
+    ]
 
----
-
-## Symbols to Analyze
-
-{symbols_text}
-
-## Your Task
-
-Analyze each symbol above and determine if it violates any naming rules.
-For each symbol that needs renaming, provide a suggestion.
-
-Respond with JSON in this exact format:
-```json
-{{
-  "results": [
-    {{
-      "symbol_index": 0,
-      "needs_rename": true,
-      "analysis": "Brief explanation",
-      "suggestion": {{
-        "suggested_name": "betterName",
-        "confidence": 0.85,
-        "rationale": "Why this name is better",
-        "rules_addressed": ["R1_REVEAL_INTENT"]
-      }}
-    }},
-    {{
-      "symbol_index": 1,
-      "needs_rename": false,
-      "analysis": "Name is appropriate",
-      "suggestion": null
-    }}
-  ]
-}}
-```
-"""
+    # Use new batch analysis prompt
+    return get_batch_analysis_prompt(symbols=symbols_dicts, rules_context=rules_context)
 
 
 def build_context_for_symbol(symbol: Symbol, max_lines: int = 15) -> str:

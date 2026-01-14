@@ -1,16 +1,14 @@
 """Tests for validation logic."""
 
-import pytest
 from pathlib import Path
 
+from named.analysis.extractor import extract_symbols
 from named.rules.models import NameSuggestion
 from named.validation.validator import (
-    validate_suggestion,
-    pre_filter_symbols,
     check_name_against_rules,
+    pre_filter_symbols,
+    validate_suggestion,
 )
-from named.analysis.extractor import extract_symbols
-
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 SAMPLE_FILE = FIXTURES_DIR / "SampleService.java"
@@ -83,15 +81,18 @@ class TestPreFilterSymbols:
         _, blocked = pre_filter_symbols(symbols)
 
         blocking_annotations = {
-            "JsonProperty", "Column", "Path", "GET", "POST",
-            "QueryParam", "PathParam", "RequestMapping",
+            "JsonProperty",
+            "Column",
+            "Path",
+            "GET",
+            "POST",
+            "QueryParam",
+            "PathParam",
+            "RequestMapping",
         }
 
         for symbol in blocked:
-            has_blocking = any(
-                ann in blocking_annotations
-                for ann in symbol.annotations
-            )
+            has_blocking = any(ann in blocking_annotations for ann in symbol.annotations)
             assert has_blocking, f"{symbol.name} has no blocking annotation"
 
 

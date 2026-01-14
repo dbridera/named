@@ -6,9 +6,9 @@ from typing import Literal
 
 import javalang
 from javalang.tree import (
+    ClassCreator,
     MemberReference,
     MethodInvocation,
-    ClassCreator,
     ReferenceType,
 )
 
@@ -64,9 +64,7 @@ def find_references(
 
     for java_file in java_files:
         try:
-            file_refs = _find_references_in_file(
-                symbol_name, symbol_kind, java_file, parent_class
-            )
+            file_refs = _find_references_in_file(symbol_name, symbol_kind, java_file, parent_class)
             references.extend(file_refs)
         except Exception as e:
             logger.debug(f"Error searching {java_file}: {e}")
@@ -93,21 +91,13 @@ def _find_references_in_file(
 
     # Find references based on symbol kind
     if symbol_kind == "class" or symbol_kind == "interface":
-        references.extend(
-            _find_class_references(symbol_name, tree, java_file, source_lines)
-        )
+        references.extend(_find_class_references(symbol_name, tree, java_file, source_lines))
     elif symbol_kind == "method":
-        references.extend(
-            _find_method_references(symbol_name, tree, java_file, source_lines)
-        )
+        references.extend(_find_method_references(symbol_name, tree, java_file, source_lines))
     elif symbol_kind == "field" or symbol_kind == "constant":
-        references.extend(
-            _find_field_references(symbol_name, tree, java_file, source_lines)
-        )
+        references.extend(_find_field_references(symbol_name, tree, java_file, source_lines))
     elif symbol_kind == "parameter" or symbol_kind == "variable":
-        references.extend(
-            _find_variable_references(symbol_name, tree, java_file, source_lines)
-        )
+        references.extend(_find_variable_references(symbol_name, tree, java_file, source_lines))
 
     return references
 
@@ -126,18 +116,14 @@ def _find_class_references(
         if hasattr(node, "type") and node.type:
             type_name = node.type.name
             if type_name == class_name:
-                ref = _create_reference(
-                    node, java_file, source_lines, "instantiate"
-                )
+                ref = _create_reference(node, java_file, source_lines, "instantiate")
                 if ref:
                     references.append(ref)
 
     # Find type references: ClassName variable, List<ClassName>
     for path, node in tree.filter(ReferenceType):
         if hasattr(node, "name") and node.name == class_name:
-            ref = _create_reference(
-                node, java_file, source_lines, "type_reference"
-            )
+            ref = _create_reference(node, java_file, source_lines, "type_reference")
             if ref:
                 references.append(ref)
 

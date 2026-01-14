@@ -1,7 +1,6 @@
 """JSON report exporter."""
 
 import json
-from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -81,6 +80,9 @@ def _build_summary(results: list[ValidationResult], symbols: list[Symbol]) -> di
     confidences = [r.suggestion.confidence for r in results if r.suggestion.suggested_name]
     avg_confidence = sum(confidences) / len(confidences) if confidences else 0.0
 
+    # Build impact summary
+    impact_summary = _build_impact_summary(results)
+
     return {
         "total_symbols_analyzed": total_symbols,
         "suggestions_generated": suggestions_count,
@@ -89,6 +91,41 @@ def _build_summary(results: list[ValidationResult], symbols: list[Symbol]) -> di
         "average_confidence": round(avg_confidence, 2),
         "violations_by_rule": violations_by_rule,
         "symbols_by_kind": symbols_by_kind,
+        "impact_summary": impact_summary,
+    }
+
+
+def _build_impact_summary(results: list[ValidationResult]) -> dict[str, Any]:
+    """Build impact summary statistics.
+
+    Args:
+        results: List of validation results
+
+    Returns:
+        Dictionary with impact statistics
+    """
+    high = medium = low = 0
+    all_affected_files: set[str] = set()
+
+    for result in results:
+        if result.suggestion.impact_analysis:
+            ia = result.suggestion.impact_analysis
+            if ia.risk_level == "high":
+                high += 1
+            elif ia.risk_level == "medium":
+                medium += 1
+            else:
+                low += 1
+            all_affected_files.update(ia.affected_files)
+
+    total = high + medium + low
+
+    return {
+        "high_impact_changes": high,
+        "medium_impact_changes": medium,
+        "low_impact_changes": low,
+        "total_files_affected": len(all_affected_files),
+        "total_changes_with_impact": total,
     }
 
 
@@ -97,11 +134,13 @@ def _get_blocked_symbols(results: list[ValidationResult]) -> list[dict[str, Any]
     blocked = []
     for result in results:
         if result.suggestion.blocked:
-            blocked.append({
-                "symbol_name": result.suggestion.original_name,
-                "symbol_kind": result.suggestion.symbol_kind,
-                "reason": result.suggestion.blocked_reason,
-            })
+            blocked.append(
+                {
+                    "symbol_name": result.suggestion.original_name,
+                    "symbol_kind": result.suggestion.symbol_kind,
+                    "reason": result.suggestion.blocked_reason,
+                }
+            )
     return blocked
 
 

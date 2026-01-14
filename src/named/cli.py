@@ -1,7 +1,6 @@
 """Command-line interface for Named."""
 
 from pathlib import Path
-from typing import Optional
 
 import typer
 from rich.console import Console
@@ -30,7 +29,7 @@ def version_callback(value: bool):
 
 @app.callback()
 def main(
-    version: Optional[bool] = typer.Option(
+    version: bool | None = typer.Option(
         None,
         "--version",
         "-v",
@@ -73,7 +72,7 @@ def analyze(
         "--dry-run",
         help="Only parse and show statistics, don't call LLM.",
     ),
-    exclude: Optional[list[str]] = typer.Option(
+    exclude: list[str] | None = typer.Option(
         None,
         "--exclude",
         "-e",
@@ -100,7 +99,7 @@ def analyze(
     configure_logging(verbose=verbose)
     logger.debug(f"Starting analysis of {path}")
 
-    console.print(f"\n[bold blue]Named[/bold blue] - Java Naming Analysis\n")
+    console.print("\n[bold blue]Named[/bold blue] - Java Naming Analysis\n")
 
     # Validate format
     if format not in ("json", "md", "all"):
@@ -124,6 +123,7 @@ def analyze(
         ) as progress:
             progress.add_task("Finding Java files...", total=None)
             from named.analysis.parser import find_java_files
+
             java_files = find_java_files(path, exclude)
 
     if not java_files:
@@ -175,9 +175,10 @@ def analyze(
 
     # Pre-filter blocked symbols
     from named.validation.validator import pre_filter_symbols
+
     analyzable, blocked = pre_filter_symbols(all_symbols)
 
-    console.print(f"\n[bold]Analysis:[/bold]")
+    console.print("\n[bold]Analysis:[/bold]")
     console.print(f"  - Analyzable symbols: {len(analyzable)}")
     console.print(f"  - Blocked by guardrails: {len(blocked)}")
 
@@ -189,10 +190,10 @@ def analyze(
     results = []
 
     try:
-        from named.suggestions.llm_client import LLMClient, LLMError
-        from named.rules.models import NameSuggestion
-        from named.validation.validator import validate_suggestion
         from rich.progress import BarColumn, TaskProgressColumn, TimeRemainingColumn
+
+        from named.suggestions.llm_client import LLMClient, LLMError
+        from named.validation.validator import validate_suggestion
 
         client = LLMClient(model=model, verbose=verbose)
 
@@ -228,11 +229,13 @@ def analyze(
                     # Update progress with current file and symbol
                     progress.update(
                         task,
-                        description=f"[cyan]{file_name}[/cyan]: {symbol.kind} [bold]{symbol.name}[/bold]"
+                        description=f"[cyan]{file_name}[/cyan]: {symbol.kind} [bold]{symbol.name}[/bold]",
                     )
 
                     if verbose:
-                        console.print(f"\n[dim]Analyzing {symbol_count}/{len(analyzable)}: {file_name}:{symbol.name} ({symbol.kind})[/dim]")
+                        console.print(
+                            f"\n[dim]Analyzing {symbol_count}/{len(analyzable)}: {file_name}:{symbol.name} ({symbol.kind})[/dim]"
+                        )
 
                     try:
                         suggestion = client.analyze_symbol(
@@ -245,6 +248,7 @@ def analyze(
                         if suggestion:
                             # Find references for this symbol
                             from named.analysis.reference_finder import find_references
+
                             refs = find_references(
                                 symbol_name=symbol.name,
                                 symbol_kind=symbol.kind,
@@ -257,15 +261,24 @@ def analyze(
                                 "line": symbol.location.line,
                             }
 
+                            # Compute impact analysis (always, even for zero references)
+                            from named.analysis.impact_analyzer import compute_rename_impact
+
+                            suggestion.impact_analysis = compute_rename_impact(refs)
+
                             result = validate_suggestion(suggestion, symbol.annotations)
                             results.append(result)
 
                             if verbose and suggestion.suggested_name:
                                 ref_count = len(refs)
-                                console.print(f"  [green]→ Suggestion:[/green] {symbol.name} → {suggestion.suggested_name} ({suggestion.confidence:.0%}) [dim]({ref_count} refs)[/dim]")
+                                console.print(
+                                    f"  [green]→ Suggestion:[/green] {symbol.name} → {suggestion.suggested_name} ({suggestion.confidence:.0%}) [dim]({ref_count} refs)[/dim]"
+                                )
 
                     except LLMError as e:
-                        console.print(f"\n[yellow]Warning:[/yellow] Failed to analyze {symbol.name}: {e}")
+                        console.print(
+                            f"\n[yellow]Warning:[/yellow] Failed to analyze {symbol.name}: {e}"
+                        )
 
                     progress.advance(task)
 
@@ -275,24 +288,26 @@ def analyze(
         raise typer.Exit(1)
 
     # Generate reports
-    console.print(f"\n[bold]Generating reports...[/bold]")
+    console.print("\n[bold]Generating reports...[/bold]")
 
     output.mkdir(parents=True, exist_ok=True)
 
     if format in ("json", "all"):
         from named.export.json_exporter import export_json
+
         json_path = export_json(results, all_symbols, output, project_path, model)
         console.print(f"  - JSON: {json_path}")
 
     if format in ("md", "all"):
         from named.export.markdown_exporter import export_markdown
+
         md_path = export_markdown(results, all_symbols, output, project_path, model)
         console.print(f"  - Markdown: {md_path}")
 
     # Show results summary
     _show_results_summary(results)
 
-    console.print(f"\n[bold green]Analysis complete![/bold green]")
+    console.print("\n[bold green]Analysis complete![/bold green]")
     console.print(f"Reports saved to: {output.absolute()}\n")
 
 
@@ -322,7 +337,7 @@ def _show_results_summary(results):
     blocked = sum(1 for r in results if r.suggestion.blocked)
     high_conf = sum(1 for r in results if r.suggestion.confidence >= 0.85)
 
-    console.print(f"\n[bold]Results Summary:[/bold]")
+    console.print("\n[bold]Results Summary:[/bold]")
     console.print(f"  - Total suggestions: {len(results)}")
     console.print(f"  - Valid suggestions: {valid}")
     console.print(f"  - Blocked by guardrails: {blocked}")
@@ -335,7 +350,7 @@ def _show_results_summary(results):
     )[:5]
 
     if top_suggestions:
-        console.print(f"\n[bold]Top Suggestions:[/bold]")
+        console.print("\n[bold]Top Suggestions:[/bold]")
         for result in top_suggestions:
             s = result.suggestion
             console.print(
@@ -359,8 +374,8 @@ def rules(
     This command displays the 9 naming rules and 4 guardrails
     that Named uses to analyze Java code.
     """
-    from named.rules.naming_rules import NAMING_RULES
     from named.rules.guardrails import GUARDRAILS
+    from named.rules.naming_rules import NAMING_RULES
 
     console.print("\n[bold blue]Named[/bold blue] - Naming Rules\n")
 
@@ -370,7 +385,9 @@ def rules(
     for rule in NAMING_RULES:
         name = rule.name_en if lang == "en" else rule.name
         desc = rule.description_en if lang == "en" else rule.description
-        severity = "[red]ERROR[/red]" if rule.severity.value == "error" else "[yellow]WARNING[/yellow]"
+        severity = (
+            "[red]ERROR[/red]" if rule.severity.value == "error" else "[yellow]WARNING[/yellow]"
+        )
 
         console.print(f"[bold cyan]{rule.id}[/bold cyan]: {name}")
         console.print(f"  {severity} | {rule.category.value}")
@@ -389,7 +406,9 @@ def rules(
         console.print(f"[bold red]{guardrail.id}[/bold red]: {name}")
         console.print(f"  {desc}")
         if guardrail.blocked_annotations:
-            console.print(f"  Blocked annotations: {', '.join(f'@{a}' for a in guardrail.blocked_annotations[:5])}")
+            console.print(
+                f"  Blocked annotations: {', '.join(f'@{a}' for a in guardrail.blocked_annotations[:5])}"
+            )
         if guardrail.threshold:
             console.print(f"  Threshold: {guardrail.threshold}")
         console.print()

@@ -1,6 +1,6 @@
 """Validation module for Named."""
 
-from named.validation.validator import validate_suggestion, ValidationResult
+from named.validation.validator import ValidationResult, validate_suggestion
 
 __all__ = [
     "validate_suggestion",

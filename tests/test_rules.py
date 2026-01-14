@@ -1,16 +1,14 @@
 """Tests for the rules module."""
 
-import pytest
-
-from named.rules.models import Severity, RuleCategory
-from named.rules.naming_rules import NAMING_RULES, get_rule
 from named.rules.guardrails import (
     GUARDRAILS,
-    get_guardrail,
     check_annotation_guardrails,
     check_confidence_guardrail,
+    get_guardrail,
     is_blocked,
 )
+from named.rules.models import RuleCategory, Severity
+from named.rules.naming_rules import NAMING_RULES, get_rule
 
 
 class TestNamingRules:

@@ -4,23 +4,17 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
 
-import javalang
 from javalang.tree import (
     ClassDeclaration,
-    InterfaceDeclaration,
-    EnumDeclaration,
-    MethodDeclaration,
-    FieldDeclaration,
-    FormalParameter,
-    LocalVariableDeclaration,
-    VariableDeclarator,
-    ConstructorDeclaration,
-    AnnotationDeclaration,
     CompilationUnit,
+    ConstructorDeclaration,
+    EnumDeclaration,
+    FieldDeclaration,
+    InterfaceDeclaration,
+    MethodDeclaration,
 )
 
-from named.analysis.parser import parse_java_file, get_package_name
-
+from named.analysis.parser import get_package_name, parse_java_file
 
 SymbolKind = Literal[
     "class",
@@ -67,11 +61,7 @@ class Symbol:
 
     def is_constant(self) -> bool:
         """Check if this symbol is a constant (static final field)."""
-        return (
-            self.kind == "field"
-            and "static" in self.modifiers
-            and "final" in self.modifiers
-        )
+        return self.kind == "field" and "static" in self.modifiers and "final" in self.modifiers
 
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization."""
@@ -138,9 +128,7 @@ def _extract_from_type_declaration(
     type_location = _get_position(node, file_path)
 
     # Get context (a few lines around the declaration)
-    context_lines = source_lines[
-        max(0, type_location.line - 2) : type_location.line + 5
-    ]
+    context_lines = source_lines[max(0, type_location.line - 2) : type_location.line + 5]
     context = "\n".join(context_lines)
 
     symbols.append(

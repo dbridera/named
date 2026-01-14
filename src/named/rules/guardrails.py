@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from named.rules.models import Guardrail
 
 if TYPE_CHECKING:
-    from named.analysis.extractor import Symbol
+    pass
 
 GUARDRAILS: list[Guardrail] = [
     # G1: Immutable Contracts - Serialization/persistence annotations
@@ -54,8 +54,7 @@ GUARDRAILS: list[Guardrail] = [
             "(Class.forName, getDeclaredField, etc.)."
         ),
         description_en=(
-            "Don't rename elements accessed via reflection "
-            "(Class.forName, getDeclaredField, etc.)."
+            "Don't rename elements accessed via reflection (Class.forName, getDeclaredField, etc.)."
         ),
         check_type="pattern",
         blocked_patterns=[
@@ -74,12 +73,10 @@ GUARDRAILS: list[Guardrail] = [
         name="API pública",
         name_en="Public API",
         description=(
-            "No renombrar elementos expuestos en APIs REST o públicas "
-            "(@Path, @GET, @POST, etc.)."
+            "No renombrar elementos expuestos en APIs REST o públicas (@Path, @GET, @POST, etc.)."
         ),
         description_en=(
-            "Don't rename elements exposed in REST or public APIs "
-            "(@Path, @GET, @POST, etc.)."
+            "Don't rename elements exposed in REST or public APIs (@Path, @GET, @POST, etc.)."
         ),
         check_type="annotation",
         blocked_annotations=[
@@ -119,12 +116,8 @@ GUARDRAILS: list[Guardrail] = [
         id="G4_CONFIDENCE_THRESHOLD",
         name="Umbral de confianza",
         name_en="Confidence Threshold",
-        description=(
-            "Bloquear cambios generados por la IA con una confianza menor a 0.80."
-        ),
-        description_en=(
-            "Block AI-generated changes with confidence below 0.80."
-        ),
+        description=("Bloquear cambios generados por la IA con una confianza menor a 0.80."),
+        description_en=("Block AI-generated changes with confidence below 0.80."),
         check_type="confidence",
         threshold=0.80,
     ),
@@ -159,9 +152,7 @@ def check_annotation_guardrails(annotations: list[str]) -> list[tuple[str, str]]
                 # Check exact match or match without package prefix
                 ann_simple = ann.split(".")[-1] if "." in ann else ann
                 if ann_simple in guardrail.blocked_annotations:
-                    blocked.append(
-                        (guardrail.id, f"Has @{ann_simple} annotation")
-                    )
+                    blocked.append((guardrail.id, f"Has @{ann_simple} annotation"))
                     break  # Only report once per guardrail
     return blocked
 

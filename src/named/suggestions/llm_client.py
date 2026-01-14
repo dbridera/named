@@ -86,16 +86,15 @@ class LLMClient:
 
             self._request_count += 1
 
+            # Import system prompt from prompts module
+            from named.prompts import get_system_prompt
+
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
                     {
                         "role": "system",
-                        "content": (
-                            "You are an expert Java developer helping to improve code quality. "
-                            "You analyze naming conventions and suggest improvements. "
-                            "Always respond with valid JSON only, no markdown formatting."
-                        ),
+                        "content": get_system_prompt(),
                     },
                     {"role": "user", "content": prompt},
                 ],

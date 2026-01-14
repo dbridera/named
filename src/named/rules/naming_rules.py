@@ -13,8 +13,7 @@ NAMING_RULES: list[NamingRule] = [
             "para qué se utiliza y cómo se usa."
         ),
         description_en=(
-            "Names must self-explain why the element exists, what it's used for, "
-            "and how it's used."
+            "Names must self-explain why the element exists, what it's used for, and how it's used."
         ),
         category=RuleCategory.SEMANTIC,
         severity=Severity.ERROR,
@@ -193,8 +192,7 @@ NAMING_RULES: list[NamingRule] = [
             "de i, j y k en bucles cortos."
         ),
         description_en=(
-            "Don't use single-letter variables, except for i, j, and k "
-            "in short loops."
+            "Don't use single-letter variables, except for i, j, and k in short loops."
         ),
         category=RuleCategory.SEMANTIC,
         severity=Severity.ERROR,
@@ -277,13 +275,9 @@ NAMING_RULES: list[NamingRule] = [
         name="Idioma correcto",
         name_en="Correct Language",
         description=(
-            "Utilizar inglés correcto, evitando el 'spanglish' "
-            "y los errores de ortografía."
+            "Utilizar inglés correcto, evitando el 'spanglish' y los errores de ortografía."
         ),
-        description_en=(
-            "Use correct English, avoiding 'spanglish' "
-            "and spelling errors."
-        ),
+        description_en=("Use correct English, avoiding 'spanglish' and spelling errors."),
         category=RuleCategory.SYNTACTIC,
         severity=Severity.ERROR,
         examples_good=[

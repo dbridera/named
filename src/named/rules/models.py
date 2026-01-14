@@ -2,7 +2,10 @@
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Literal, Optional
+from typing import TYPE_CHECKING, Literal, Optional
+
+if TYPE_CHECKING:
+    from named.analysis.impact_analyzer import RenameImpact
 
 
 class Severity(Enum):
@@ -76,7 +79,7 @@ class Guardrail:
     check_type: Literal["annotation", "pattern", "confidence"]
     blocked_annotations: list[str] = field(default_factory=list)
     blocked_patterns: list[str] = field(default_factory=list)
-    threshold: Optional[float] = None  # For confidence guardrail
+    threshold: float | None = None  # For confidence guardrail
 
     def to_prompt_section(self, lang: str = "en") -> str:
         """Render guardrail as a section for LLM prompt."""
@@ -99,7 +102,7 @@ class RuleViolation:
     symbol_name: str  # The name that violated the rule
     severity: Severity  # Error or warning
     message: str  # Human-readable explanation
-    suggestion: Optional[str] = None  # Suggested fix if available
+    suggestion: str | None = None  # Suggested fix if available
     confidence: float = 1.0  # How confident we are in this violation
 
 
@@ -114,6 +117,7 @@ class NameSuggestion:
     rationale: str  # Why this name is better
     rules_addressed: list[str] = field(default_factory=list)  # Which rules this fixes
     blocked: bool = False  # Whether a guardrail blocked this
-    blocked_reason: Optional[str] = None  # Why it was blocked
+    blocked_reason: str | None = None  # Why it was blocked
     references: list = field(default_factory=list)  # Symbol references (usages)
-    location: Optional[dict] = None  # Symbol location info
+    location: dict | None = None  # Symbol location info
+    impact_analysis: Optional["RenameImpact"] = None  # Impact analysis for the rename

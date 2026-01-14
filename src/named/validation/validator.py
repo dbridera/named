@@ -1,12 +1,12 @@
 """Validation of suggestions against guardrails and rules."""
 
+import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from named.rules.guardrails import check_all_guardrails, is_blocked
-from named.rules.models import NameSuggestion, RuleViolation, Severity
+from named.rules.models import NameSuggestion, RuleViolation
 from named.rules.naming_rules import NAMING_RULES
-import re
 
 if TYPE_CHECKING:
     from named.analysis.extractor import Symbol
@@ -37,7 +37,7 @@ class ValidationResult:
         # Include references if available
         if self.suggestion.references:
             suggestion_dict["references"] = [
-                ref.to_dict() if hasattr(ref, 'to_dict') else str(ref)
+                ref.to_dict() if hasattr(ref, "to_dict") else str(ref)
                 for ref in self.suggestion.references
             ]
             suggestion_dict["reference_count"] = len(self.suggestion.references)
@@ -45,6 +45,10 @@ class ValidationResult:
         # Include location if available
         if self.suggestion.location:
             suggestion_dict["location"] = self.suggestion.location
+
+        # Include impact analysis if available
+        if self.suggestion.impact_analysis:
+            suggestion_dict["impact_analysis"] = self.suggestion.impact_analysis.to_dict()
 
         return {
             "is_valid": self.is_valid,

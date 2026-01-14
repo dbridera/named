@@ -1,8 +1,5 @@
 """Configuration settings for Named."""
 
-from pathlib import Path
-from typing import Optional
-
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -26,9 +23,7 @@ class Settings(BaseSettings):
     )
 
     # Output settings
-    output_format: str = Field(
-        default="all", description="Output format: json, md, or all"
-    )
+    output_format: str = Field(default="all", description="Output format: json, md, or all")
 
 
 def get_settings() -> Settings:
