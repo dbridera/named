@@ -5,10 +5,18 @@ including which files are affected and the risk level of the change.
 """
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 if TYPE_CHECKING:
     from named.analysis.reference_finder import SymbolReference
+
+# Risk level type for type safety
+RiskLevel = Literal["low", "medium", "high"]
+
+# Risk threshold configuration
+# These thresholds determine how file count maps to risk levels
+MEDIUM_RISK_MIN_FILES = 4  # 4-10 files = medium risk (module-level change)
+HIGH_RISK_MIN_FILES = 11  # 11+ files = high risk (cross-cutting concern)
 
 
 @dataclass
@@ -19,7 +27,7 @@ class RenameImpact:
     affected_files: list[str]  # List of file paths
     affected_file_count: int
     references_by_file: dict[str, list[dict]]  # File -> list of ref dicts
-    risk_level: str  # "low", "medium", "high"
+    risk_level: RiskLevel  # "low", "medium", "high"
 
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization."""
@@ -32,23 +40,26 @@ class RenameImpact:
         }
 
 
-def calculate_risk_level(file_count: int) -> str:
+def calculate_risk_level(file_count: int) -> RiskLevel:
     """Calculate risk level based on affected file count.
 
-    Risk levels:
+    Risk levels are determined by module-level constants:
     - low: 1-3 files affected (localized change)
     - medium: 4-10 files affected (module-level change)
     - high: 11+ files affected (cross-cutting concern)
+
+    The thresholds can be adjusted via MEDIUM_RISK_MIN_FILES and HIGH_RISK_MIN_FILES
+    constants at the top of this module.
 
     Args:
         file_count: Number of files affected by the rename
 
     Returns:
-        Risk level string: "low", "medium", or "high"
+        Risk level: "low", "medium", or "high"
     """
-    if file_count >= 11:
+    if file_count >= HIGH_RISK_MIN_FILES:
         return "high"
-    elif file_count >= 4:
+    elif file_count >= MEDIUM_RISK_MIN_FILES:
         return "medium"
     else:
         return "low"

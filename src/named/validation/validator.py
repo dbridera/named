@@ -4,12 +4,15 @@ import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from named.logging import get_logger
 from named.rules.guardrails import check_all_guardrails, is_blocked
 from named.rules.models import NameSuggestion, RuleViolation
 from named.rules.naming_rules import NAMING_RULES
 
 if TYPE_CHECKING:
     from named.analysis.extractor import Symbol
+
+logger = get_logger("validation")
 
 
 @dataclass
@@ -36,10 +39,23 @@ class ValidationResult:
 
         # Include references if available
         if self.suggestion.references:
-            suggestion_dict["references"] = [
-                ref.to_dict() if hasattr(ref, "to_dict") else str(ref)
-                for ref in self.suggestion.references
-            ]
+            refs_dicts = []
+            for ref in self.suggestion.references:
+                try:
+                    refs_dicts.append(ref.to_dict())
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to serialize reference for {self.suggestion.original_name}: {e}"
+                    )
+                    # Include error info for debugging
+                    refs_dicts.append(
+                        {
+                            "error": type(e).__name__,
+                            "message": str(e),
+                            "ref_type": type(ref).__name__,
+                        }
+                    )
+            suggestion_dict["references"] = refs_dicts
             suggestion_dict["reference_count"] = len(self.suggestion.references)
 
         # Include location if available

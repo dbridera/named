@@ -6,6 +6,14 @@ from pathlib import Path
 from named.analysis.extractor import Symbol
 from named.validation.validator import ValidationResult
 
+# Display configuration constants for impact analysis report
+MAX_HIGH_IMPACT_ITEMS = 5  # Maximum high-impact items to show in detail
+MAX_MEDIUM_IMPACT_ITEMS = 10  # Maximum medium-impact items to show in detail
+MAX_LOW_IMPACT_ITEMS = 20  # Maximum low-impact items to show in collapsed section
+MAX_FILES_PER_ITEM = 6  # Maximum files to show per impact item
+MAX_REFS_PER_FILE = 3  # Maximum references to show per file
+MAX_SNIPPET_LENGTH = 60  # Maximum code snippet length before truncation
+
 
 def export_markdown(
     results: list[ValidationResult],
@@ -226,10 +234,12 @@ This section shows which files will be affected by each suggested rename.
         content += "### High Impact Changes (11+ files)\n\n"
         for result in sorted(
             high_impact, key=lambda r: -r.suggestion.impact_analysis.affected_file_count
-        )[:5]:
+        )[:MAX_HIGH_IMPACT_ITEMS]:
             content += _format_impact_item(result, show_details=False)
-        if len(high_impact) > 5:
-            content += f"*... and {len(high_impact) - 5} more high-impact changes*\n\n"
+        if len(high_impact) > MAX_HIGH_IMPACT_ITEMS:
+            content += (
+                f"*... and {len(high_impact) - MAX_HIGH_IMPACT_ITEMS} more high-impact changes*\n\n"
+            )
         content += "---\n\n"
 
     # Medium impact changes
@@ -237,10 +247,10 @@ This section shows which files will be affected by each suggested rename.
         content += "### Medium Impact Changes (4-10 files)\n\n"
         for result in sorted(
             medium_impact, key=lambda r: -r.suggestion.impact_analysis.affected_file_count
-        )[:10]:
+        )[:MAX_MEDIUM_IMPACT_ITEMS]:
             content += _format_impact_item(result, show_details=True)
-        if len(medium_impact) > 10:
-            content += f"*... and {len(medium_impact) - 10} more medium-impact changes*\n\n"
+        if len(medium_impact) > MAX_MEDIUM_IMPACT_ITEMS:
+            content += f"*... and {len(medium_impact) - MAX_MEDIUM_IMPACT_ITEMS} more medium-impact changes*\n\n"
         content += "---\n\n"
 
     # Low impact changes (just show count)
@@ -248,12 +258,14 @@ This section shows which files will be affected by each suggested rename.
         content += "### Low Impact Changes (1-3 files)\n\n"
         content += f"**{len(low_impact)} low-impact changes** affecting 1-3 files each.\n\n"
         content += "<details>\n<summary>Click to expand low-impact changes</summary>\n\n"
-        for result in sorted(low_impact, key=lambda r: -r.suggestion.confidence)[:20]:
+        for result in sorted(low_impact, key=lambda r: -r.suggestion.confidence)[
+            :MAX_LOW_IMPACT_ITEMS
+        ]:
             s = result.suggestion
             ia = s.impact_analysis
             content += f"- `{s.original_name}` → `{s.suggested_name}` ({s.symbol_kind}, {ia.affected_file_count} files, {s.confidence:.0%})\n"
-        if len(low_impact) > 20:
-            content += f"\n*... and {len(low_impact) - 20} more*\n"
+        if len(low_impact) > MAX_LOW_IMPACT_ITEMS:
+            content += f"\n*... and {len(low_impact) - MAX_LOW_IMPACT_ITEMS} more*\n"
         content += "\n</details>\n\n"
 
     return content
@@ -293,19 +305,19 @@ def _format_impact_item(result: ValidationResult, show_details: bool = True) -> 
         # Sort files by number of references (descending)
         sorted_files = sorted(ia.references_by_file.items(), key=lambda x: len(x[1]), reverse=True)
 
-        for file_path, refs in sorted_files[:6]:  # Show up to 6 files
+        for file_path, refs in sorted_files[:MAX_FILES_PER_ITEM]:
             file_name = Path(file_path).name
             ref_count = len(refs)
             content += (
                 f"  - **{file_name}** ({ref_count} reference{'s' if ref_count > 1 else ''}):\n"
             )
 
-            # Show up to 3 references per file
-            for ref in refs[:3]:
+            # Show up to MAX_REFS_PER_FILE references per file
+            for ref in refs[:MAX_REFS_PER_FILE]:
                 line = ref.get("line", "?")
                 snippet = ref.get("code_snippet", "").strip()
-                if len(snippet) > 60:
-                    snippet = snippet[:57] + "..."
+                if len(snippet) > MAX_SNIPPET_LENGTH:
+                    snippet = snippet[: MAX_SNIPPET_LENGTH - 3] + "..."
                 content += f"    - Line {line}: `{snippet}`\n"
 
             if len(refs) > 3:
