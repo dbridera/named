@@ -36,11 +36,10 @@ def export_markdown(
     """
     content = _build_markdown_content(results, symbols, project_path, model)
 
-    # Ensure output directory exists
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-
-    # Write Markdown file
+    # Determine final output path
     md_path = output_path if output_path.suffix == ".md" else output_path / "report.md"
+
+    # Ensure output directory exists
     md_path.parent.mkdir(parents=True, exist_ok=True)
 
     with open(md_path, "w", encoding="utf-8") as f:

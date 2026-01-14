@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 import javalang
 from javalang.tree import (
@@ -32,8 +32,13 @@ class SymbolReference:
     def __str__(self) -> str:
         return f"{self.file.name}:{self.line} → `{self.code_snippet.strip()}`"
 
-    def to_dict(self) -> dict:
-        """Convert to dictionary for JSON serialization."""
+    def to_dict(self) -> dict[str, Any]:
+        """Convert to dictionary for JSON serialization.
+
+        Returns:
+            Dictionary with file (str), line (int), column (int),
+            code_snippet (str), and usage_type (str).
+        """
         return {
             "file": str(self.file),
             "line": self.line,

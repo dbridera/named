@@ -220,3 +220,120 @@ def test_compute_rename_impact_same_file_multiple_references():
     assert result.affected_file_count == 1
     assert result.risk_level == "low"
     assert len(result.references_by_file["Service.java"]) == 10
+
+
+# Edge case tests
+def test_aggregate_references_with_special_characters_in_snippet():
+    """Test aggregation handles special characters in code snippets."""
+    refs = [
+        SymbolReference(
+            file=Path("Service.java"),
+            line=10,
+            column=5,
+            code_snippet="method(\"test\", 'quote', <tag>, {obj})",
+            usage_type="call",
+        ),
+        SymbolReference(
+            file=Path("Service.java"),
+            line=20,
+            column=10,
+            code_snippet="method(null, undefined, \n\t\r)",
+            usage_type="call",
+        ),
+    ]
+
+    result = aggregate_references_by_file(refs)
+
+    assert len(result) == 1
+    assert "Service.java" in result
+    assert len(result["Service.java"]) == 2
+    # Verify special characters are preserved
+    assert '"test"' in result["Service.java"][0]["code_snippet"]
+    assert "null" in result["Service.java"][1]["code_snippet"]
+
+
+def test_aggregate_references_with_different_usage_types():
+    """Test aggregation preserves different usage types."""
+    refs = [
+        SymbolReference(Path("Service.java"), 10, 5, "x.field", "read"),
+        SymbolReference(Path("Service.java"), 20, 10, "x.field = 5", "write"),
+        SymbolReference(Path("Service.java"), 30, 15, "method()", "call"),
+        SymbolReference(Path("Service.java"), 40, 20, "new Class()", "instantiate"),
+        SymbolReference(Path("Service.java"), 50, 25, "Class x", "type_reference"),
+    ]
+
+    result = aggregate_references_by_file(refs)
+
+    assert len(result["Service.java"]) == 5
+    # Verify all usage types are preserved
+    usage_types = [ref["usage_type"] for ref in result["Service.java"]]
+    assert "read" in usage_types
+    assert "write" in usage_types
+    assert "call" in usage_types
+    assert "instantiate" in usage_types
+    assert "type_reference" in usage_types
+
+
+def test_calculate_risk_level_boundary_conditions():
+    """Test risk level calculation at exact threshold boundaries."""
+    # Test at exact boundaries
+    assert calculate_risk_level(0) == "low"  # Edge: 0 files
+    assert calculate_risk_level(3) == "low"  # Upper bound of low
+    assert calculate_risk_level(4) == "medium"  # Lower bound of medium
+    assert calculate_risk_level(10) == "medium"  # Upper bound of medium
+    assert calculate_risk_level(11) == "high"  # Lower bound of high
+
+
+def test_compute_rename_impact_with_empty_code_snippet():
+    """Test impact computation handles empty code snippets."""
+    refs = [
+        SymbolReference(
+            file=Path("Service.java"),
+            line=10,
+            column=5,
+            code_snippet="",
+            usage_type="call",
+        ),
+        SymbolReference(
+            file=Path("Service.java"),
+            line=20,
+            column=10,
+            code_snippet="   ",  # Whitespace only
+            usage_type="call",
+        ),
+    ]
+
+    result = compute_rename_impact(refs)
+
+    assert result.total_references == 2
+    assert result.affected_file_count == 1
+    # Verify empty snippets don't cause errors
+    assert len(result.references_by_file["Service.java"]) == 2
+
+
+def test_to_dict_returns_correct_type():
+    """Test that to_dict() returns dict with proper structure."""
+    impact = RenameImpact(
+        total_references=1,
+        affected_files=["Test.java"],
+        affected_file_count=1,
+        references_by_file={
+            "Test.java": [{"line": 10, "column": 5, "code_snippet": "x", "usage_type": "read"}]
+        },
+        risk_level="low",
+    )
+
+    result = impact.to_dict()
+
+    # Verify all required keys are present
+    assert "total_references" in result
+    assert "affected_file_count" in result
+    assert "affected_files" in result
+    assert "risk_level" in result
+    assert "references_by_file" in result
+    # Verify types
+    assert isinstance(result["total_references"], int)
+    assert isinstance(result["affected_file_count"], int)
+    assert isinstance(result["affected_files"], list)
+    assert isinstance(result["risk_level"], str)
+    assert isinstance(result["references_by_file"], dict)

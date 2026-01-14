@@ -45,11 +45,10 @@ def export_json(
         "all_symbols": [s.to_dict() for s in symbols],
     }
 
-    # Ensure output directory exists
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-
-    # Write JSON file
+    # Determine final output path
     json_path = output_path if output_path.suffix == ".json" else output_path / "report.json"
+
+    # Ensure output directory exists
     json_path.parent.mkdir(parents=True, exist_ok=True)
 
     with open(json_path, "w", encoding="utf-8") as f:

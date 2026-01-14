@@ -4,8 +4,9 @@ This module provides functionality to analyze the impact of renaming symbols,
 including which files are affected and the risk level of the change.
 """
 
+from collections import defaultdict
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 if TYPE_CHECKING:
     from named.analysis.reference_finder import SymbolReference
@@ -21,16 +22,47 @@ HIGH_RISK_MIN_FILES = 11  # 11+ files = high risk (cross-cutting concern)
 
 @dataclass
 class RenameImpact:
-    """Aggregated impact analysis for a rename operation."""
+    """Aggregated impact analysis for a rename operation.
+
+    This class encapsulates the results of analyzing how a symbol rename
+    will impact a codebase. It includes reference counts, file locations,
+    and a risk assessment.
+
+    Attributes:
+        total_references: Total number of references to the symbol across all files
+        affected_files: List of file paths that contain references to the symbol
+        affected_file_count: Number of unique files affected (len of affected_files)
+        references_by_file: Dictionary mapping file paths to lists of reference details.
+            Each reference dict contains: line, column, code_snippet, usage_type
+        risk_level: Assessment of rename risk based on affected file count:
+            - "low": 1-3 files (localized change)
+            - "medium": 4-10 files (module-level change)
+            - "high": 11+ files (cross-cutting concern)
+
+    Example:
+        >>> impact = RenameImpact(
+        ...     total_references=5,
+        ...     affected_files=["Foo.java", "Bar.java"],
+        ...     affected_file_count=2,
+        ...     references_by_file={"Foo.java": [...], "Bar.java": [...]},
+        ...     risk_level="low"
+        ... )
+        >>> impact.to_dict()  # Serialize for JSON export
+    """
 
     total_references: int
-    affected_files: list[str]  # List of file paths
+    affected_files: list[str]
     affected_file_count: int
-    references_by_file: dict[str, list[dict]]  # File -> list of ref dicts
-    risk_level: RiskLevel  # "low", "medium", "high"
+    references_by_file: dict[str, list[dict]]
+    risk_level: RiskLevel
 
-    def to_dict(self) -> dict:
-        """Convert to dictionary for JSON serialization."""
+    def to_dict(self) -> dict[str, Any]:
+        """Convert to dictionary for JSON serialization.
+
+        Returns:
+            Dictionary with all impact data, suitable for JSON export.
+            Keys match the attribute names for consistency.
+        """
         return {
             "total_references": self.total_references,
             "affected_file_count": self.affected_file_count,
@@ -70,19 +102,18 @@ def aggregate_references_by_file(
 ) -> dict[str, list[dict]]:
     """Group references by file path.
 
+    Uses defaultdict for more efficient grouping without manual key checks.
+
     Args:
         references: List of SymbolReference objects
 
     Returns:
         Dictionary mapping file paths to lists of reference dictionaries
     """
-    by_file: dict[str, list[dict]] = {}
+    by_file: dict[str, list[dict]] = defaultdict(list)
 
     for ref in references:
         file_path = str(ref.file)
-
-        if file_path not in by_file:
-            by_file[file_path] = []
 
         # Convert reference to dict for serialization
         ref_dict = {
@@ -93,7 +124,7 @@ def aggregate_references_by_file(
         }
         by_file[file_path].append(ref_dict)
 
-    return by_file
+    return dict(by_file)  # Convert back to regular dict for serialization
 
 
 def compute_rename_impact(references: list["SymbolReference"]) -> RenameImpact:
