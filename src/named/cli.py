@@ -13,6 +13,18 @@ from named.logging import configure_logging, get_logger
 
 logger = get_logger("cli")
 
+# Pricing per 1M tokens (input, output) in USD
+MODEL_PRICING = {
+    "gpt-4o": {
+        "streaming": {"input": 5.00, "output": 15.00},
+        "batch": {"input": 2.50, "output": 7.50},
+    },
+    "gpt-4o-mini": {
+        "streaming": {"input": 0.15, "output": 0.60},
+        "batch": {"input": 0.075, "output": 0.30},
+    },
+}
+
 app = typer.Typer(
     name="named",
     help="Intelligent Java code refactoring system for naming conventions.",
@@ -420,6 +432,224 @@ def rules(
         if guardrail.threshold:
             console.print(f"  Threshold: {guardrail.threshold}")
         console.print()
+
+
+@app.command()
+def estimate(
+    path: Path = typer.Argument(
+        ...,
+        help="Path to Java project directory or single Java file.",
+        exists=True,
+    ),
+    model: str = typer.Option(
+        "gpt-4o",
+        "--model",
+        "-m",
+        help="OpenAI model for pricing (gpt-4o, gpt-4o-mini).",
+    ),
+    batch_size: int = typer.Option(
+        50,
+        "--batch-size",
+        help="Symbols per batch (for batch count calculation).",
+    ),
+    exclude: Optional[list[str]] = typer.Option(
+        None,
+        "--exclude",
+        "-e",
+        help="Glob patterns to exclude (e.g., '**/test/**').",
+    ),
+    verbose: bool = typer.Option(
+        False,
+        "--verbose",
+        "-v",
+        help="Show detailed breakdown.",
+    ),
+):
+    """Estimate cost and token budget before running analysis.
+
+    Scans a Java project, extracts symbols, and calculates projected
+    token usage and costs for both streaming and batch modes.
+    No LLM calls are made.
+
+    Examples:
+        named estimate ./my-project
+        named estimate ./project --model gpt-4o-mini
+        named estimate ./project --batch-size 100 --verbose
+    """
+    import math
+
+    console.print("\n[bold blue]Named[/bold blue] - Cost Estimation\n")
+
+    # --- Find Java files (same as analyze) ---
+    if path.is_file():
+        if not path.suffix == ".java":
+            console.print(f"[red]Error:[/red] Not a Java file: {path}")
+            raise typer.Exit(1)
+        java_files = [path]
+    else:
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            console=console,
+        ) as progress:
+            progress.add_task("Finding Java files...", total=None)
+            from named.analysis.parser import find_java_files
+
+            java_files = find_java_files(path, exclude)
+
+    if not java_files:
+        console.print(f"[yellow]Warning:[/yellow] No Java files found in {path}")
+        raise typer.Exit(0)
+
+    console.print(f"Found [bold]{len(java_files)}[/bold] Java file(s)\n")
+
+    # --- Extract symbols (same as analyze) ---
+    all_symbols = []
+    parse_errors = []
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+    ) as progress:
+        task = progress.add_task("Parsing Java files...", total=len(java_files))
+
+        from named.analysis.extractor import extract_symbols
+        from named.analysis.parser import JavaParseError
+
+        for java_file in java_files:
+            try:
+                symbols = extract_symbols(java_file)
+                all_symbols.extend(symbols)
+            except JavaParseError as e:
+                parse_errors.append(str(e))
+            except Exception as e:
+                parse_errors.append(f"{java_file}: {e}")
+            progress.advance(task)
+
+    console.print(f"\nExtracted [bold]{len(all_symbols)}[/bold] symbols")
+
+    if parse_errors:
+        console.print(f"[yellow]Warning:[/yellow] {len(parse_errors)} file(s) had parse errors")
+        if verbose:
+            for error in parse_errors[:5]:
+                console.print(f"  - {error}")
+            if len(parse_errors) > 5:
+                console.print(f"  ... and {len(parse_errors) - 5} more")
+
+    _show_symbol_summary(all_symbols)
+
+    # --- Pre-filter symbols ---
+    from named.validation.validator import pre_filter_symbols
+
+    analyzable, blocked = pre_filter_symbols(all_symbols)
+
+    if not analyzable:
+        console.print("\n[yellow]No analyzable symbols after guardrail filtering.[/yellow]")
+        raise typer.Exit(0)
+
+    # --- Build prompts and estimate tokens ---
+    from named.prompts import get_system_prompt, get_rules_context
+    from named.rules.guardrails import GUARDRAILS
+    from named.rules.naming_rules import NAMING_RULES
+
+    system_prompt = get_system_prompt()
+    rules_context = get_rules_context(NAMING_RULES, GUARDRAILS)
+
+    total_input_chars = 0
+    for symbol in analyzable:
+        # Inline prompt building (same logic as batch_client._build_symbol_prompt)
+        symbol_info = f"Symbol to analyze:\nName: {symbol.name}\nKind: {symbol.kind}\nContext:\n```\n{symbol.context or ''}\n```\n"
+        if symbol.annotations:
+            symbol_info += f"\nAnnotations: {', '.join(symbol.annotations)}"
+        user_prompt = f"{rules_context}\n\n{symbol_info}\n\nAnalyze this symbol and provide a JSON response following the schema."
+        total_input_chars += len(system_prompt) + len(user_prompt)
+
+    # Token estimation (chars / 4, validated against production data)
+    total_input_tokens = total_input_chars // 4
+    output_tokens_per_symbol = 500
+    total_output_tokens = len(analyzable) * output_tokens_per_symbol
+    avg_input_tokens = total_input_tokens // len(analyzable)
+
+    # Batch count
+    num_batches = math.ceil(len(analyzable) / batch_size)
+
+    # --- Calculate costs ---
+    if model not in MODEL_PRICING:
+        console.print(f"[yellow]Warning:[/yellow] Unknown model '{model}', using gpt-4o pricing")
+        pricing = MODEL_PRICING["gpt-4o"]
+    else:
+        pricing = MODEL_PRICING[model]
+
+    streaming_input_cost = (total_input_tokens / 1_000_000) * pricing["streaming"]["input"]
+    streaming_output_cost = (total_output_tokens / 1_000_000) * pricing["streaming"]["output"]
+    streaming_total = streaming_input_cost + streaming_output_cost
+
+    batch_input_cost = (total_input_tokens / 1_000_000) * pricing["batch"]["input"]
+    batch_output_cost = (total_output_tokens / 1_000_000) * pricing["batch"]["output"]
+    batch_total = batch_input_cost + batch_output_cost
+
+    # --- Display token estimation table ---
+    token_table = Table(title="Token Estimation")
+    token_table.add_column("Metric", style="cyan")
+    token_table.add_column("Value", justify="right")
+
+    token_table.add_row("Analyzable symbols", f"{len(analyzable):,}")
+    token_table.add_row("Blocked by guardrails", f"{len(blocked):,}")
+    token_table.add_row("Avg input tokens/symbol", f"{avg_input_tokens:,}")
+    token_table.add_row("Est. output tokens/symbol", f"{output_tokens_per_symbol:,}")
+    token_table.add_row("Total input tokens", f"{total_input_tokens:,}")
+    token_table.add_row("Total output tokens", f"{total_output_tokens:,}")
+    token_table.add_row("Total tokens", f"{total_input_tokens + total_output_tokens:,}")
+    token_table.add_row(f"Batches needed (size={batch_size})", f"{num_batches:,}")
+
+    console.print()
+    console.print(token_table)
+
+    # --- Display cost comparison table ---
+    cost_table = Table(title=f"Cost Estimate ({model})")
+    cost_table.add_column("", style="bold")
+    cost_table.add_column("Streaming", justify="right", style="yellow")
+    cost_table.add_column("Batch (50% off)", justify="right", style="green")
+
+    cost_table.add_row(
+        "Input cost",
+        f"${streaming_input_cost:.2f}",
+        f"${batch_input_cost:.2f}",
+    )
+    cost_table.add_row(
+        "Output cost",
+        f"${streaming_output_cost:.2f}",
+        f"${batch_output_cost:.2f}",
+    )
+    cost_table.add_row(
+        "Total",
+        f"${streaming_total:.2f}",
+        f"${batch_total:.2f}",
+    )
+    cost_table.add_row(
+        "Savings",
+        "-",
+        f"${streaming_total - batch_total:.2f}",
+    )
+
+    console.print()
+    console.print(cost_table)
+
+    # --- Summary ---
+    console.print(f"\n[bold]Recommendation:[/bold]")
+    if len(analyzable) > 500:
+        console.print(
+            f"  Use [green]batch mode[/green] for this project "
+            f"(saves ${streaming_total - batch_total:.2f}, "
+            f"{num_batches} batches, ~24h processing)"
+        )
+    else:
+        console.print(
+            f"  Use [yellow]streaming mode[/yellow] for quick results "
+            f"(${streaming_total:.2f}, immediate processing)"
+        )
+    console.print()
 
 
 @app.command()

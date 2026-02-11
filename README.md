@@ -93,6 +93,59 @@ named batch-retrieve --batch-jobs ./report/batch_jobs.json --output ./report
 - Streaming: ~$10-15 (full price)
 - Batch: ~$5-7.50 (50% discount)
 
+### Cost Estimation
+
+Estimate token usage and costs before running analysis (no LLM calls):
+
+```bash
+# Estimate costs for a project
+named estimate ./my-java-project
+
+# Estimate with a different model
+named estimate ./my-java-project --model gpt-4o-mini
+
+# Estimate with custom batch size
+named estimate ./my-java-project --batch-size 100
+
+# Verbose output (show parse errors)
+named estimate ./my-java-project --verbose
+```
+
+**Example output:**
+```
+Named - Cost Estimation
+
+Found 1070 Java file(s)
+Extracted 48322 symbols
+
+             Token Estimation
+┌───────────────────────────┬────────────┐
+│ Metric                    │      Value │
+├───────────────────────────┼────────────┤
+│ Analyzable symbols        │     47,803 │
+│ Blocked by guardrails     │        519 │
+│ Avg input tokens/symbol   │      1,231 │
+│ Est. output tokens/symbol │        500 │
+│ Total input tokens        │ 58,846,666 │
+│ Total output tokens       │ 23,901,500 │
+│ Total tokens              │ 82,748,166 │
+│ Batches needed (size=50)  │        957 │
+└───────────────────────────┴────────────┘
+
+           Cost Estimate (gpt-4o)
+┌─────────────┬───────────┬─────────────────┐
+│             │ Streaming │ Batch (50% off) │
+├─────────────┼───────────┼─────────────────┤
+│ Input cost  │   $294.23 │         $147.12 │
+│ Output cost │   $358.52 │         $179.26 │
+│ Total       │   $652.76 │         $326.38 │
+│ Savings     │         - │         $326.38 │
+└─────────────┴───────────┴─────────────────┘
+
+Recommendation:
+  Use batch mode for this project (saves $326.38, 957 batches, ~24h processing)
+```
+
 ### Other Commands
 
 ```bash
@@ -116,6 +169,15 @@ named rules --lang es
 | `--dry-run` | Parse only, skip LLM analysis |
 | `--verbose, -v` | Show detailed progress and LLM logs |
 | `--exclude, -e` | Glob patterns to exclude |
+
+#### `named estimate` Options
+
+| Option | Description |
+|--------|-------------|
+| `--model, -m` | OpenAI model for pricing (default: `gpt-4o`) |
+| `--batch-size` | Symbols per batch for batch count calculation (default: `50`) |
+| `--exclude, -e` | Glob patterns to exclude |
+| `--verbose, -v` | Show detailed breakdown |
 
 #### `named batch-status` Options
 
@@ -306,6 +368,88 @@ uv run mypy src/named
 uv run ruff format src/named
 ```
 
+## Docker
+
+### Build
+
+```bash
+docker build -t named .
+```
+
+### Production Usage
+
+Pass your API key with `--env-file` and mount your Java project as a volume:
+
+```bash
+# Estimate costs (no API key needed)
+docker run --rm \
+  -v ./my-project:/data \
+  named estimate /data
+
+# Analyze in streaming mode
+docker run --rm \
+  --env-file .env \
+  -v ./my-project:/data \
+  -v ./report:/output \
+  named analyze /data --output /output
+
+# Analyze in batch mode (50% cost savings)
+docker run --rm \
+  --env-file .env \
+  -v ./my-project:/data \
+  -v ./report:/output \
+  named analyze /data --mode batch --output /output
+
+# Check batch status
+docker run --rm \
+  --env-file .env \
+  -v ./report:/output \
+  named batch-status --batch-jobs /output/batch_jobs.json
+
+# Retrieve batch results
+docker run --rm \
+  --env-file .env \
+  -v ./report:/output \
+  named batch-retrieve --batch-jobs /output/batch_jobs.json --output /output
+
+# Show naming rules
+docker run --rm named rules
+```
+
+You can also pass environment variables directly with `-e` instead of `--env-file`:
+
+```bash
+docker run --rm \
+  -e NAMED_OPENAI_API_KEY=sk-... \
+  -v ./my-project:/data \
+  named analyze /data
+```
+
+### Development (mounting source code)
+
+Mount your local `src/` directory to iterate on code without rebuilding:
+
+```bash
+docker run --rm \
+  --env-file .env \
+  -v ./src/named:/usr/local/lib/python3.12/site-packages/named \
+  -v ./my-project:/data \
+  -v ./report:/output \
+  named analyze /data --output /output
+```
+
+This overrides the installed package with your local source, so changes are reflected immediately.
+
+### Environment File
+
+The `.env` file is loaded at runtime via `--env-file`, never baked into the image. Example `.env`:
+
+```bash
+NAMED_OPENAI_API_KEY=sk-your-key-here
+NAMED_OPENAI_MODEL=gpt-4o
+NAMED_BATCH_SIZE=50
+```
+
 ## Configuration
 
 Batch processing can be configured via environment variables in `.env`:
@@ -347,8 +491,10 @@ named/
 │   └── export/                # Report generation
 │       ├── json_exporter.py   # JSON reports
 │       └── markdown_exporter.py # Markdown reports
+├── Dockerfile                 # Multi-stage Docker build
+├── .dockerignore              # Docker build exclusions
 ├── samples/                   # Sample Java projects
-├── tests/                     # Test suite (65 tests)
+├── tests/                     # Test suite (76 tests)
 ├── docs/                      # Documentation
 └── batch_settings.yaml        # Batch processing config
 ```
