@@ -1,0 +1,31 @@
+# Named Batch Processing Settings
+# This file contains configuration for batch processing mode
+
+# Batch processing settings
+batch:
+  # Enable batch mode by default (use --mode=batch flag to override)
+  enabled: false
+
+  # Number of symbols per batch (1-100)
+  # Recommended: 50 for optimal balance between cost and error handling
+  batch_size: 50
+
+  # Seconds between batch status checks
+  # Recommended: 60 to avoid rate limits
+  poll_interval: 60
+
+  # Maximum wait time for batch completion in seconds
+  # Default: 90000 (25 hours = 24h completion window + 1h buffer)
+  timeout: 90000
+
+# OpenAI API settings
+# Note: API key should be set in .env file as NAMED_OPENAI_API_KEY
+openai:
+  # Model to use for batch processing
+  model: gpt-4o
+
+  # Batch API endpoint
+  endpoint: /v1/chat/completions
+
+  # Completion window (currently only 24h supported by OpenAI)
+  completion_window: 24h
