@@ -1,5 +1,6 @@
 """Find references (usages) of symbols across Java files."""
 
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
@@ -103,6 +104,12 @@ def _find_references_in_file(
         references.extend(_find_field_references(symbol_name, tree, java_file, source_lines))
     elif symbol_kind == "parameter" or symbol_kind == "variable":
         references.extend(_find_variable_references(symbol_name, tree, java_file, source_lines))
+
+    # Text-based fallback for field/parameter/variable references
+    # Catches this.field patterns and other usages the AST may miss
+    if symbol_kind in ("field", "constant", "parameter", "variable"):
+        text_refs = _find_text_references(symbol_name, java_file, source_lines, references)
+        references.extend(text_refs)
 
     return references
 
@@ -234,6 +241,48 @@ def _create_reference(
         code_snippet=code_snippet,
         usage_type=usage_type,
     )
+
+
+def _find_text_references(
+    symbol_name: str,
+    java_file: Path,
+    source_lines: list[str],
+    known_refs: list[SymbolReference],
+) -> list[SymbolReference]:
+    """Fallback text-based reference search using word boundaries.
+
+    Finds references that the AST-based search may have missed (e.g., this.field).
+    Deduplicates against already-found references.
+
+    Args:
+        symbol_name: Name of the symbol.
+        java_file: Path to the file.
+        source_lines: Lines of the file.
+        known_refs: References already found by AST search.
+
+    Returns:
+        Additional references not already in known_refs.
+    """
+    known_positions = {(r.line, r.column) for r in known_refs}
+
+    additional = []
+    pattern = re.compile(r"\b" + re.escape(symbol_name) + r"\b")
+
+    for line_num, line_text in enumerate(source_lines, start=1):
+        for match in pattern.finditer(line_text):
+            col = match.start() + 1  # 1-based
+            if (line_num, col) not in known_positions:
+                additional.append(
+                    SymbolReference(
+                        file=java_file,
+                        line=line_num,
+                        column=col,
+                        code_snippet=line_text,
+                        usage_type="read",
+                    )
+                )
+
+    return additional
 
 
 def find_all_references(

@@ -1,12 +1,14 @@
 """Validation of suggestions against guardrails and rules."""
 
 import re
+from collections import defaultdict
 from dataclasses import dataclass
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from named.logging import get_logger
 from named.rules.guardrails import check_all_guardrails, is_blocked
-from named.rules.models import NameSuggestion, RuleViolation
+from named.rules.models import NameSuggestion, RuleViolation, Severity
 from named.rules.naming_rules import NAMING_RULES
 
 if TYPE_CHECKING:
@@ -118,6 +120,14 @@ def validate_suggestion(
             suggestion.suggested_name,
             suggestion.symbol_kind,
         )
+
+        # Check constant naming convention
+        constant_violation = _check_constant_naming_convention(
+            suggestion.suggested_name,
+            suggestion.symbol_kind,
+        )
+        if constant_violation:
+            rule_violations.append(constant_violation)
 
     is_valid = len(blocked_reasons) == 0 and len(rule_violations) == 0
 
@@ -234,5 +244,145 @@ def validate_all_suggestions(
         annotations = symbol_annotations.get(suggestion.original_name, [])
         result = validate_suggestion(suggestion, annotations)
         results.append(result)
+
+    return results
+
+
+def _check_constant_naming_convention(
+    suggested_name: str,
+    symbol_kind: str,
+) -> RuleViolation | None:
+    """Check that constants use UPPER_SNAKE_CASE.
+
+    Args:
+        suggested_name: The proposed new name.
+        symbol_kind: The kind of symbol (constant, field, etc.).
+
+    Returns:
+        RuleViolation if a constant is suggested with non-uppercase name.
+    """
+    if symbol_kind != "constant":
+        return None
+
+    if not re.match(r"^[A-Z][A-Z0-9_]*$", suggested_name):
+        upper = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", suggested_name).upper()
+        return RuleViolation(
+            rule_id="R_CONSTANT_CASE",
+            symbol_name=suggested_name,
+            severity=Severity.ERROR,
+            message=f"Constant must use UPPER_SNAKE_CASE. Suggestion: '{upper}'",
+            suggestion=upper,
+        )
+    return None
+
+
+def detect_scope_conflicts(
+    results: list[ValidationResult],
+    all_symbols: list["Symbol"] | None = None,
+) -> list[ValidationResult]:
+    """Detect cross-suggestion naming conflicts within the same scope.
+
+    Checks two conflict types:
+    - G5a: Two suggestions produce the same target name in the same scope.
+    - G5b: A suggested name collides with an existing (non-renamed) symbol.
+
+    Args:
+        results: List of ValidationResults from individual validation.
+        all_symbols: All symbols in the project for collision checks.
+
+    Returns:
+        The same list with conflicts marked as invalid/blocked.
+    """
+    # Build scope -> {suggested_name -> [results]} mapping
+    # Scope key = (file_path, parent_class)
+    scope_map: dict[tuple[str, str], dict[str, list[ValidationResult]]] = defaultdict(
+        lambda: defaultdict(list)
+    )
+
+    for r in results:
+        if not r.is_valid or not r.suggestion.suggested_name:
+            continue
+
+        file_path = ""
+        if r.suggestion.location:
+            file_path = r.suggestion.location.get("file", "")
+
+        parent_class = getattr(r.suggestion, "parent_class", "") or ""
+        scope_key = (file_path, parent_class)
+
+        scope_map[scope_key][r.suggestion.suggested_name].append(r)
+
+    # G5a: Detect duplicate suggested names within same scope
+    for scope_key, name_groups in scope_map.items():
+        for suggested_name, conflicting in name_groups.items():
+            if len(conflicting) <= 1:
+                continue
+
+            # Keep highest confidence, block the rest
+            sorted_by_conf = sorted(
+                conflicting,
+                key=lambda r: r.suggestion.confidence,
+                reverse=True,
+            )
+            for r in sorted_by_conf[1:]:
+                reason = (
+                    f"G5_DUPLICATE_TARGET: Suggested name '{suggested_name}' "
+                    f"conflicts with another suggestion in the same scope"
+                )
+                r.is_valid = False
+                r.blocked_reasons.append(reason)
+                r.suggestion.blocked = True
+                r.suggestion.blocked_reason = (
+                    (r.suggestion.blocked_reason + "; " if r.suggestion.blocked_reason else "")
+                    + reason
+                )
+                logger.info(
+                    f"Blocked duplicate: {r.suggestion.original_name} -> "
+                    f"{suggested_name} (lower confidence)"
+                )
+
+    # G5b: Detect collision with existing symbol names
+    if all_symbols:
+        existing_by_file: dict[str, set[str]] = defaultdict(set)
+        for sym in all_symbols:
+            file_key = str(sym.location.file)
+            existing_by_file[file_key].add(sym.name)
+
+        # Build set of names being renamed away (per file)
+        renamed_away_by_file: dict[str, set[str]] = defaultdict(set)
+        for r in results:
+            if not r.is_valid or not r.suggestion.location:
+                continue
+            fp = r.suggestion.location.get("file", "")
+            renamed_away_by_file[fp].add(r.suggestion.original_name)
+
+        for r in results:
+            if not r.is_valid or not r.suggestion.suggested_name:
+                continue
+
+            file_path = ""
+            if r.suggestion.location:
+                file_path = r.suggestion.location.get("file", "")
+
+            existing = existing_by_file.get(file_path, set())
+            renamed_away = renamed_away_by_file.get(file_path, set())
+            still_existing = existing - renamed_away
+
+            if r.suggestion.suggested_name in still_existing:
+                reason = (
+                    f"G5_EXISTING_COLLISION: Suggested name '{r.suggestion.suggested_name}' "
+                    f"already exists in {Path(file_path).name}"
+                )
+                r.is_valid = False
+                r.blocked_reasons.append(reason)
+                r.suggestion.blocked = True
+                r.suggestion.blocked_reason = (
+                    (r.suggestion.blocked_reason + "; " if r.suggestion.blocked_reason else "")
+                    + reason
+                )
+                logger.info(
+                    f"Blocked collision: {r.suggestion.original_name} -> "
+                    f"{r.suggestion.suggested_name} (name exists)"
+                )
 
     return results

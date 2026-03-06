@@ -188,7 +188,7 @@ def _extract_from_type_declaration(
                                 modifiers=_get_modifiers(param),
                                 parent_class=type_name,
                                 package=package,
-                                context=f"Parameter of method {member.name}",
+                                context=f"Parameter '{param.name}' of type {param.type.name if param.type else 'unknown'} in method {member.name}",
                             )
                         )
 

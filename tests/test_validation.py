@@ -6,6 +6,7 @@ from named.analysis.extractor import extract_symbols
 from named.rules.models import NameSuggestion
 from named.validation.validator import (
     check_name_against_rules,
+    detect_scope_conflicts,
     pre_filter_symbols,
     validate_suggestion,
 )
@@ -122,3 +123,123 @@ class TestCheckNameAgainstRules:
         """Well-named identifiers should have no violations."""
         violations = check_name_against_rules("customerEmailAddress", "field")
         assert len(violations) == 0
+
+
+class TestConstantNamingConvention:
+    """Tests for constant naming convention check."""
+
+    def test_constant_with_lowercase_is_invalid(self):
+        """Constants with camelCase names should be blocked."""
+        suggestion = NameSuggestion(
+            original_name="RATE",
+            suggested_name="interestRate",
+            symbol_kind="constant",
+            confidence=0.90,
+            rationale="More descriptive",
+            rules_addressed=["R1_REVEAL_INTENT"],
+        )
+        result = validate_suggestion(suggestion, annotations=[])
+        assert result.is_valid is False
+        assert any("R_CONSTANT_CASE" == v.rule_id for v in result.rule_violations)
+
+    def test_constant_with_upper_snake_case_is_valid(self):
+        """Constants with UPPER_SNAKE_CASE should pass."""
+        suggestion = NameSuggestion(
+            original_name="RATE",
+            suggested_name="INTEREST_RATE",
+            symbol_kind="constant",
+            confidence=0.90,
+            rationale="More descriptive",
+            rules_addressed=["R1_REVEAL_INTENT"],
+        )
+        result = validate_suggestion(suggestion, annotations=[])
+        assert not any("R_CONSTANT_CASE" == v.rule_id for v in result.rule_violations)
+
+    def test_non_constant_allows_camelcase(self):
+        """Non-constant fields should allow camelCase."""
+        suggestion = NameSuggestion(
+            original_name="x",
+            suggested_name="interestRate",
+            symbol_kind="field",
+            confidence=0.90,
+            rationale="More descriptive",
+            rules_addressed=["R1_REVEAL_INTENT"],
+        )
+        result = validate_suggestion(suggestion, annotations=[])
+        assert not any("R_CONSTANT_CASE" == v.rule_id for v in result.rule_violations)
+
+
+class TestDetectScopeConflicts:
+    """Tests for cross-suggestion conflict detection."""
+
+    def _make_result(self, original, suggested, file="Account.java", confidence=0.90):
+        s = NameSuggestion(
+            original_name=original,
+            suggested_name=suggested,
+            symbol_kind="field",
+            confidence=confidence,
+            rationale="test",
+            rules_addressed=[],
+            location={"file": file, "line": 1},
+        )
+        from named.validation.validator import ValidationResult
+
+        return ValidationResult(
+            is_valid=True,
+            suggestion=s,
+            blocked_reasons=[],
+            rule_violations=[],
+        )
+
+    def test_duplicate_target_blocks_lower_confidence(self):
+        """When two suggestions map to same target, lower-confidence one is blocked."""
+        r1 = self._make_result("data", "accountDetails", confidence=0.95)
+        r2 = self._make_result("info", "accountDetails", confidence=0.90)
+
+        detect_scope_conflicts([r1, r2])
+
+        assert r1.is_valid is True
+        assert r2.is_valid is False
+        assert "G5_DUPLICATE_TARGET" in r2.blocked_reasons[0]
+
+    def test_three_duplicates_keeps_highest(self):
+        """With three duplicates, only the highest confidence survives."""
+        r1 = self._make_result("data", "details", confidence=0.85)
+        r2 = self._make_result("info", "details", confidence=0.95)
+        r3 = self._make_result("obj", "details", confidence=0.80)
+
+        detect_scope_conflicts([r1, r2, r3])
+
+        assert r2.is_valid is True  # Highest confidence
+        assert r1.is_valid is False
+        assert r3.is_valid is False
+
+    def test_different_files_no_conflict(self):
+        """Same target name in different files is not a conflict."""
+        r1 = self._make_result("data", "details", file="Foo.java")
+        r2 = self._make_result("info", "details", file="Bar.java")
+
+        detect_scope_conflicts([r1, r2])
+
+        assert r1.is_valid is True
+        assert r2.is_valid is True
+
+    def test_different_targets_no_conflict(self):
+        """Different target names in same file should not conflict."""
+        r1 = self._make_result("data", "accountData")
+        r2 = self._make_result("info", "accountInfo")
+
+        detect_scope_conflicts([r1, r2])
+
+        assert r1.is_valid is True
+        assert r2.is_valid is True
+
+    def test_already_invalid_not_considered(self):
+        """Already-invalid results should not participate in conflict detection."""
+        r1 = self._make_result("data", "details", confidence=0.95)
+        r2 = self._make_result("info", "details", confidence=0.90)
+        r2.is_valid = False  # Pre-blocked by another check
+
+        detect_scope_conflicts([r1, r2])
+
+        assert r1.is_valid is True  # No conflict since r2 was already invalid

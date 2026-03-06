@@ -14,7 +14,7 @@ public class Customer {
     private Long id;
 
     // R9: Spanish/Spanglish names
-    private String nombre;  // Should be: name
+    private String nombre;  // Should be: firstName
     private String apellido;  // Should be: lastName
     private String direccion;  // Should be: address
 
@@ -34,9 +34,6 @@ public class Customer {
     private String cstmrPrfl;  // customerProfile
     private String txnHstry;   // transactionHistory
 
-    // Good names (for comparison)
-    private String firstName;
-    private String lastName;
     private String phoneNumber;
     private String emailAddress;
 
@@ -67,11 +64,6 @@ public class Customer {
 
     public void validate() {
         // Validate what aspect?
-    }
-
-    // Better names with context
-    public void updateContactInformation() {
-        // Clear intent
     }
 
     public boolean validateEmailFormat() {

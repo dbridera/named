@@ -7,11 +7,12 @@ Named analyzes Java codebases and suggests naming improvements based on banking 
 ## Features
 
 - **9 Naming Rules**: Based on Clean Code principles adapted for banking industry
-- **4 Guardrails**: Automatic protection against breaking changes (@JsonProperty, @Path, etc.)
+- **5 Guardrails**: Automatic protection against breaking changes (@JsonProperty, @Path, conflicts, etc.)
 - **AI-Powered**: Uses OpenAI GPT-4o to generate intelligent naming suggestions
 - **Dual Processing Modes**: Real-time streaming or async batch processing (50% cost savings)
 - **Symbol References**: Shows where each symbol is used across the codebase
 - **Impact Analysis**: Risk assessment for each rename (low/medium/high)
+- **Apply Renames**: Apply approved suggestions directly to source code with backup
 - **Report Generation**: JSON and Markdown reports with detailed analysis
 - **Progress Logging**: Real-time progress with file/symbol information
 - **Verbose Mode**: Debug logging for LLM prompts and responses
@@ -47,6 +48,11 @@ uv pip install -e ".[dev]"
 3. **Review the generated reports** in `./report/`:
    - `report.json` - Machine-readable full report
    - `report.md` - Human-readable summary
+
+4. **Apply approved renames:**
+   ```bash
+   named apply ./report/report.json --project-root ./my-java-project --backup
+   ```
 
 ## Usage
 
@@ -146,6 +152,27 @@ Recommendation:
   Use batch mode for this project (saves $326.38, 957 batches, ~24h processing)
 ```
 
+### Apply Renames
+
+Apply validated suggestions from a report directly to your source code:
+
+```bash
+# Apply with backup (recommended)
+named apply ./report/report.json --project-root ./my-java-project --backup
+
+# Dry run - preview changes without modifying files
+named apply ./report/report.json --project-root ./my-java-project --dry-run
+
+# Apply with custom confidence threshold
+named apply ./report/report.json --project-root ./my-java-project --min-confidence 90
+```
+
+The apply engine:
+- Renames declarations and all references across the codebase
+- Detects and blocks conflicting renames (same target name in same scope)
+- Creates timestamped backups before modifying files
+- Supports dry-run mode for safe preview
+
 ### Other Commands
 
 ```bash
@@ -178,6 +205,15 @@ named rules --lang es
 | `--batch-size` | Symbols per batch for batch count calculation (default: `50`) |
 | `--exclude, -e` | Glob patterns to exclude |
 | `--verbose, -v` | Show detailed breakdown |
+
+#### `named apply` Options
+
+| Option | Description |
+|--------|-------------|
+| `--project-root` | Root directory of the Java project (required) |
+| `--backup` | Create timestamped backup before applying changes |
+| `--dry-run` | Preview changes without modifying files |
+| `--min-confidence` | Minimum confidence threshold (default: `80`) |
 
 #### `named batch-status` Options
 
@@ -342,12 +378,13 @@ Batch analysis complete!
 
 ## Guardrails
 
-| ID | Guardrail | Blocked Annotations |
-|----|-----------|---------------------|
+| ID | Guardrail | Description |
+|----|-----------|-------------|
 | G1 | Immutable Contracts | @JsonProperty, @Column, @SerializedName |
 | G2 | Reflection Usage | Symbols accessed via reflection |
 | G3 | Public API | @Path, @GET, @POST, @QueryParam |
 | G4 | Confidence Threshold | Suggestions below 80% confidence |
+| G5 | Scope Conflicts | Duplicate target names or collisions with existing symbols |
 
 ## Development
 
@@ -372,8 +409,42 @@ uv run ruff format src/named
 
 ### Build
 
+Use the `docker_build.sh` script to build with environment-aware tagging:
+
 ```bash
-docker build -t named .
+# Dev build (default)
+./docker_build.sh
+
+# Prod build (also sets :latest and :VERSION)
+./docker_build.sh --env prod
+
+# Prod build with custom tag
+./docker_build.sh --env prod --tag rc1
+
+# Rebuild without cache
+./docker_build.sh --no-cache
+```
+
+**Tagging strategy:**
+
+| Environment | Tags generated |
+|-------------|---------------|
+| `dev` | `named:dev`, `named:dev-0.1.0`, `named:dev-0.1.0-abc1234` |
+| `prod` | `named:prod`, `named:prod-0.1.0`, `named:prod-0.1.0-abc1234`, `named:0.1.0`, `named:latest` |
+
+The version is read from `pyproject.toml` and the git SHA is appended automatically.
+
+When running containers, reference a specific tag to pin a version:
+
+```bash
+# Use latest dev build
+docker run --rm named:dev rules
+
+# Pin to a specific version
+docker run --rm named:prod-0.1.0 rules
+
+# Pin to an exact build
+docker run --rm named:dev-0.1.0-abc1234 rules
 ```
 
 ### Production Usage
@@ -487,14 +558,17 @@ named/
 │   │   ├── batch_client.py    # Batch API client (NEW)
 │   │   └── prompt_builder.py  # Prompt construction
 │   ├── validation/            # Guardrail validation
-│   │   └── validator.py       # Check guardrails
+│   │   └── validator.py       # Check guardrails + scope conflicts
+│   ├── apply/                 # Apply renames to source
+│   │   └── rename_engine.py   # Rename engine with conflict detection
 │   └── export/                # Report generation
 │       ├── json_exporter.py   # JSON reports
 │       └── markdown_exporter.py # Markdown reports
 ├── Dockerfile                 # Multi-stage Docker build
+├── docker_build.sh            # Build script with env-aware tagging
 ├── .dockerignore              # Docker build exclusions
 ├── samples/                   # Sample Java projects
-├── tests/                     # Test suite (76 tests)
+├── tests/                     # Test suite (130 tests)
 ├── docs/                      # Documentation
 └── batch_settings.yaml        # Batch processing config
 ```
