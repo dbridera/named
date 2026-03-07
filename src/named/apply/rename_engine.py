@@ -110,48 +110,86 @@ def _process_file(
             seen.add(key)
             unique_sites.append(site)
 
-    # Sort: by line DESC, then column DESC (process bottom-right first)
-    sorted_sites = sorted(
-        unique_sites,
-        key=lambda s: (s.line, s.column or 0),
-        reverse=True,
-    )
+    # Group sites by line number, then process lines bottom-to-top
+    sites_by_line: dict[int, list[ReplacementSite]] = defaultdict(list)
+    for site in unique_sites:
+        sites_by_line[site.line].append(site)
 
     modified = False
-    for site in sorted_sites:
-        line_idx = site.line - 1  # Convert to 0-based
+    for line_num in sorted(sites_by_line.keys(), reverse=True):
+        line_sites = sites_by_line[line_num]
+        line_idx = line_num - 1  # Convert to 0-based
 
         if line_idx < 0 or line_idx >= len(lines):
-            result.skipped.append((site, f"Line {site.line} out of range (file has {len(lines)} lines)"))
+            for site in line_sites:
+                result.skipped.append((site, f"Line {line_num} out of range (file has {len(lines)} lines)"))
             continue
 
         current_line = lines[line_idx]
 
-        if site.column is not None:
-            # Column-precise replacement for references
-            new_line = _replace_at_column(current_line, site.column, site.original_name, site.new_name)
-            if new_line is None:
-                result.skipped.append(
-                    (site, f"Name '{site.original_name}' not found at column {site.column} on line {site.line}")
-                )
-                continue
-        else:
-            # Word-boundary replacement for declarations
-            new_line, count = _replace_word_boundary(current_line, site.original_name, site.new_name)
-            if count == 0:
-                result.skipped.append(
-                    (site, f"Name '{site.original_name}' not found on line {site.line}")
-                )
-                continue
-            if count > 1:
-                result.skipped.append(
-                    (site, f"Ambiguous: '{site.original_name}' found {count} times on line {site.line}")
-                )
-                continue
+        # Resolve positions for all sites on this line so we can apply them
+        # right-to-left with offset tracking.
+        # Each entry: (start_col_0based, end_col_0based, new_name, site)
+        replacements = []
+
+        for site in line_sites:
+            if site.column is not None:
+                # Column-precise: position is known
+                idx = site.column - 1
+                if idx < 0 or idx + len(site.original_name) > len(current_line):
+                    result.skipped.append(
+                        (site, f"Name '{site.original_name}' not found at column {site.column} on line {line_num}")
+                    )
+                    continue
+                if current_line[idx : idx + len(site.original_name)] != site.original_name:
+                    result.skipped.append(
+                        (site, f"Name '{site.original_name}' not found at column {site.column} on line {line_num}")
+                    )
+                    continue
+                replacements.append((idx, idx + len(site.original_name), site.new_name, site))
+            else:
+                # Declaration: find via word boundary
+                pattern = r"\b" + re.escape(site.original_name) + r"\b"
+                matches = list(re.finditer(pattern, current_line))
+                if len(matches) == 0:
+                    result.skipped.append(
+                        (site, f"Name '{site.original_name}' not found on line {line_num}")
+                    )
+                    continue
+                if len(matches) > 1:
+                    result.skipped.append(
+                        (site, f"Ambiguous: '{site.original_name}' found {len(matches)} times on line {line_num}")
+                    )
+                    continue
+                m = matches[0]
+                replacements.append((m.start(), m.end(), site.new_name, site))
+
+        if not replacements:
+            continue
+
+        # Sort right-to-left so earlier positions stay valid
+        replacements.sort(key=lambda r: r[0], reverse=True)
+
+        # Drop overlapping replacements (keep rightmost of each overlap pair)
+        safe_replacements = []
+        for i, (start, end, new_name, site) in enumerate(replacements):
+            if i > 0:
+                prev_start, prev_end, _, _ = safe_replacements[-1] if safe_replacements else (len(current_line), len(current_line), "", None)
+                # Current is to the left of previous; overlap if current end > previous start
+                if safe_replacements and end > safe_replacements[-1][0]:
+                    result.skipped.append(
+                        (site, f"Overlaps with another replacement on line {line_num}")
+                    )
+                    continue
+            safe_replacements.append((start, end, new_name, site))
+
+        new_line = current_line
+        for start, end, new_name, site in safe_replacements:
+            new_line = new_line[:start] + new_name + new_line[end:]
+            result.applied.append(site)
+            modified = True
 
         lines[line_idx] = new_line
-        result.applied.append(site)
-        modified = True
 
     if modified:
         change.modified_content = "\n".join(lines)

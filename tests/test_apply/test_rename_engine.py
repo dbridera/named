@@ -410,3 +410,58 @@ class TestApplyConflictDetection:
         # 'info' -> 'details' should be blocked (both declaration and reference)
         assert len(result.applied) == 1
         assert result.applied[0].original_name == "data"
+
+
+class TestSameLineReplacements:
+    """Tests for multiple replacements on the same line."""
+
+    def test_multiple_params_same_line(self, tmp_path):
+        """Multiple parameters on the same line should all be renamed."""
+        java_file = tmp_path / "Test.java"
+        java_file.write_text("void process(String q, int pg, int sz) {}\n")
+
+        sites = [
+            ReplacementSite(
+                file=java_file, line=1, column=21, original_name="q",
+                new_name="query", site_type="reference", suggestion_index=0,
+            ),
+            ReplacementSite(
+                file=java_file, line=1, column=28, original_name="pg",
+                new_name="page", site_type="reference", suggestion_index=1,
+            ),
+            ReplacementSite(
+                file=java_file, line=1, column=36, original_name="sz",
+                new_name="size", site_type="reference", suggestion_index=2,
+            ),
+        ]
+
+        result = apply_renames(sites, dry_run=False, backup=False)
+        assert len(result.applied) == 3
+        assert len(result.skipped) == 0
+        content = java_file.read_text()
+        assert "query" in content
+        assert "page" in content
+        assert "size" in content
+
+    def test_overlapping_replacements_handled(self, tmp_path):
+        """Overlapping replacement ranges should skip one safely."""
+        java_file = tmp_path / "Test.java"
+        java_file.write_text("int myName = myNameHelper;\n")
+
+        sites = [
+            ReplacementSite(
+                file=java_file, line=1, column=5, original_name="myName",
+                new_name="firstName", site_type="reference", suggestion_index=0,
+            ),
+            ReplacementSite(
+                file=java_file, line=1, column=14, original_name="myNameHelper",
+                new_name="helper", site_type="reference", suggestion_index=1,
+            ),
+        ]
+
+        result = apply_renames(sites, dry_run=False, backup=False)
+        # Both should apply (no overlap: col 5-10 and col 14-25)
+        assert len(result.applied) == 2
+        content = java_file.read_text()
+        assert "firstName" in content
+        assert "helper" in content

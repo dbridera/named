@@ -206,24 +206,34 @@ def analyze(
         )
         return
 
-    # Analyze with LLM (streaming mode)
+    # Analyze with LLM (per-file batching: one call per file)
     results = []
 
     try:
         from rich.progress import BarColumn, TaskProgressColumn, TimeRemainingColumn
 
+        from named.analysis.impact_analyzer import compute_rename_impact
+        from named.analysis.reference_finder import find_references
+        from named.prompts import get_rules_context
+        from named.rules.guardrails import GUARDRAILS
+        from named.rules.naming_rules import NAMING_RULES
         from named.suggestions.llm_client import LLMClient, LLMError
         from named.validation.validator import validate_suggestion
 
         client = LLMClient(model=model, verbose=verbose)
 
-        # Group symbols by file for better progress display
+        # Pre-render rules context once — reused for every file
+        rules_context = get_rules_context(NAMING_RULES, GUARDRAILS, include_schema=False)
+
+        # Group symbols by file
         symbols_by_file: dict[Path, list] = {}
         for symbol in analyzable:
             file_path = symbol.location.file
             if file_path not in symbols_by_file:
                 symbols_by_file[file_path] = []
             symbols_by_file[file_path].append(symbol)
+
+        total_files = len(symbols_by_file)
 
         with Progress(
             SpinnerColumn(),
@@ -235,72 +245,58 @@ def analyze(
         ) as progress:
             task = progress.add_task(
                 f"Analyzing with {model}...",
-                total=len(analyzable),
+                total=total_files,
             )
 
-            symbol_count = 0
-            for file_path, file_symbols in symbols_by_file.items():
-                # Show current file being analyzed
+            for file_idx, (file_path, file_symbols) in enumerate(symbols_by_file.items()):
                 file_name = file_path.name
+                progress.update(
+                    task,
+                    description=f"[cyan]{file_name}[/cyan] ({len(file_symbols)} symbols)",
+                )
 
-                for symbol in file_symbols:
-                    symbol_count += 1
-
-                    # Update progress with current file and symbol
-                    progress.update(
-                        task,
-                        description=f"[cyan]{file_name}[/cyan]: {symbol.kind} [bold]{symbol.name}[/bold]",
+                if verbose:
+                    console.print(
+                        f"\n[dim]File {file_idx + 1}/{total_files}: {file_name} "
+                        f"({len(file_symbols)} symbols)[/dim]"
                     )
+
+                # One API call for the entire file
+                suggestions = client.analyze_file(
+                    file_path=file_path,
+                    symbols=file_symbols,
+                    rules_context=rules_context,
+                )
+
+                # Process returned suggestions (parallel list to file_symbols)
+                for symbol, suggestion in zip(file_symbols, suggestions):
+                    if suggestion is None:
+                        continue
+
+                    # Find references for symbols that need renaming
+                    refs = find_references(
+                        symbol_name=symbol.name,
+                        symbol_kind=symbol.kind,
+                        java_files=java_files,
+                        parent_class=symbol.parent_class,
+                    )
+                    suggestion.references = refs
+                    suggestion.location = {
+                        "file": str(symbol.location.file),
+                        "line": symbol.location.line,
+                    }
+                    suggestion.impact_analysis = compute_rename_impact(refs)
+
+                    result = validate_suggestion(suggestion, symbol.annotations)
+                    results.append(result)
 
                     if verbose:
                         console.print(
-                            f"\n[dim]Analyzing {symbol_count}/{len(analyzable)}: {file_name}:{symbol.name} ({symbol.kind})[/dim]"
+                            f"  [green]→[/green] {symbol.name} → {suggestion.suggested_name} "
+                            f"({suggestion.confidence:.0%}) [dim]({len(refs)} refs)[/dim]"
                         )
 
-                    try:
-                        suggestion = client.analyze_symbol(
-                            symbol_name=symbol.name,
-                            symbol_kind=symbol.kind,
-                            annotations=symbol.annotations,
-                            context=symbol.context,
-                        )
-
-                        if suggestion:
-                            # Find references for this symbol
-                            from named.analysis.reference_finder import find_references
-
-                            refs = find_references(
-                                symbol_name=symbol.name,
-                                symbol_kind=symbol.kind,
-                                java_files=java_files,
-                                parent_class=symbol.parent_class,
-                            )
-                            suggestion.references = refs
-                            suggestion.location = {
-                                "file": str(symbol.location.file),
-                                "line": symbol.location.line,
-                            }
-
-                            # Compute impact analysis (always, even for zero references)
-                            from named.analysis.impact_analyzer import compute_rename_impact
-
-                            suggestion.impact_analysis = compute_rename_impact(refs)
-
-                            result = validate_suggestion(suggestion, symbol.annotations)
-                            results.append(result)
-
-                            if verbose and suggestion.suggested_name:
-                                ref_count = len(refs)
-                                console.print(
-                                    f"  [green]→ Suggestion:[/green] {symbol.name} → {suggestion.suggested_name} ({suggestion.confidence:.0%}) [dim]({ref_count} refs)[/dim]"
-                                )
-
-                    except LLMError as e:
-                        console.print(
-                            f"\n[yellow]Warning:[/yellow] Failed to analyze {symbol.name}: {e}"
-                        )
-
-                    progress.advance(task)
+                progress.advance(task)
 
     except LLMError as e:
         console.print(f"\n[red]Error:[/red] LLM client error: {e}")
@@ -308,16 +304,24 @@ def analyze(
         raise typer.Exit(1)
 
     # Post-validation: detect cross-suggestion naming conflicts
-    from named.validation.validator import detect_scope_conflicts
+    from named.validation.validator import (
+        detect_getter_setter_mismatches,
+        detect_override_conflicts,
+        detect_scope_conflicts,
+        detect_shadow_collisions,
+    )
 
     pre_valid = sum(1 for r in results if r.is_valid)
     results = detect_scope_conflicts(results, all_symbols)
+    results = detect_override_conflicts(results, all_symbols)
+    results = detect_shadow_collisions(results, all_symbols)
+    results = detect_getter_setter_mismatches(results, all_symbols)
     post_valid = sum(1 for r in results if r.is_valid)
     conflicts_found = pre_valid - post_valid
     if conflicts_found > 0:
         console.print(
             f"\n[yellow]Warning:[/yellow] Blocked {conflicts_found} suggestion(s) "
-            f"due to naming conflicts (duplicate targets or existing name collisions)"
+            f"due to naming conflicts (duplicate targets, overrides, or shadow collisions)"
         )
 
     # Generate reports
@@ -1206,6 +1210,12 @@ def apply(
         "--verify",
         help="Run compilation check after applying renames.",
     ),
+    output_dir: Optional[Path] = typer.Option(
+        None,
+        "--output-dir",
+        "-o",
+        help="Copy project here and apply renames to the copy (originals stay untouched).",
+    ),
     verbose: bool = typer.Option(
         False,
         "--verbose",
@@ -1322,20 +1332,36 @@ def apply(
         console.print("\n[yellow]No files were modified (dry run).[/yellow]\n")
         raise typer.Exit(0)
 
+    # If --output-dir, copy entire project there and remap paths
+    if output_dir:
+        import shutil
+
+        output_dir = output_dir.resolve()
+        abs_root = resolved_root.resolve()
+        console.print(f"\n[bold]Copying project to {output_dir}...[/bold]")
+        shutil.copytree(abs_root, output_dir, dirs_exist_ok=True)
+
+        # Remap ReplacementSite file paths from original to copy
+        for site in sites:
+            rel = site.file.relative_to(abs_root)
+            site.file = output_dir / rel
+
     # Apply renames
     console.print(f"\n[bold]Applying renames...[/bold]")
 
     result = apply_renames(
         sites,
         dry_run=False,
-        backup=backup,
-        backup_base=resolved_root / ".named-backup" if backup else None,
+        backup=backup if not output_dir else False,
+        backup_base=resolved_root / ".named-backup" if backup and not output_dir else None,
     )
 
     # Show results
     _show_apply_summary(result)
 
-    if result.backup_dir:
+    if output_dir:
+        console.print(f"\n  Applied to: {output_dir}")
+    elif result.backup_dir:
         console.print(f"\n  Backups saved to: {result.backup_dir}")
 
     # Verification

@@ -17,7 +17,7 @@ from named.logging import get_logger
 
 logger = get_logger("reference_finder")
 
-UsageType = Literal["read", "write", "call", "instantiate", "type_reference"]
+UsageType = Literal["read", "write", "call", "instantiate", "type_reference", "import"]
 
 
 @dataclass
@@ -98,6 +98,7 @@ def _find_references_in_file(
     # Find references based on symbol kind
     if symbol_kind == "class" or symbol_kind == "interface":
         references.extend(_find_class_references(symbol_name, tree, java_file, source_lines))
+        references.extend(_find_import_references(symbol_name, java_file, source_lines))
     elif symbol_kind == "method":
         references.extend(_find_method_references(symbol_name, tree, java_file, source_lines))
     elif symbol_kind == "field" or symbol_kind == "constant":
@@ -243,6 +244,113 @@ def _create_reference(
     )
 
 
+def _find_import_references(
+    class_name: str,
+    java_file: Path,
+    source_lines: list[str],
+) -> list[SymbolReference]:
+    """Find import statements that reference a class name.
+
+    Matches patterns like 'import com.example.ClassName;' where the
+    last segment of the import path matches the class name.
+    Does NOT match wildcard imports (import com.example.*).
+
+    Args:
+        class_name: Name of the class/interface to find.
+        java_file: Path to the Java file.
+        source_lines: Lines of the file.
+
+    Returns:
+        List of SymbolReference objects with usage_type='import'.
+    """
+    references = []
+    pattern = re.compile(
+        r"import\s+(?:static\s+)?[\w.]*\." + re.escape(class_name) + r"\s*;"
+    )
+
+    for line_num, line_text in enumerate(source_lines, start=1):
+        match = pattern.search(line_text)
+        if match:
+            # Find the column of the class name within the import
+            name_start = line_text.rfind(class_name, match.start(), match.end())
+            col = name_start + 1 if name_start >= 0 else match.start() + 1
+            references.append(
+                SymbolReference(
+                    file=java_file,
+                    line=line_num,
+                    column=col,
+                    code_snippet=line_text,
+                    usage_type="import",
+                )
+            )
+
+    return references
+
+
+def _get_exclusion_zones(line: str) -> list[tuple[int, int]]:
+    """Return (start, end) ranges of string literals and comments in a line.
+
+    Handles double-quoted strings, single-quoted chars, and // line comments.
+    Does NOT handle multi-line /* */ comments (would need cross-line state).
+
+    Args:
+        line: A single line of source code.
+
+    Returns:
+        List of (start, end) tuples marking zones to exclude from text matching.
+    """
+    zones = []
+    i = 0
+    length = len(line)
+
+    while i < length:
+        ch = line[i]
+
+        # Line comment
+        if ch == "/" and i + 1 < length and line[i + 1] == "/":
+            zones.append((i, length))
+            break
+
+        # String literal
+        if ch == '"':
+            start = i
+            i += 1
+            while i < length:
+                if line[i] == "\\" and i + 1 < length:
+                    i += 2  # Skip escaped character
+                    continue
+                if line[i] == '"':
+                    i += 1
+                    break
+                i += 1
+            zones.append((start, i))
+            continue
+
+        # Char literal
+        if ch == "'":
+            start = i
+            i += 1
+            while i < length:
+                if line[i] == "\\" and i + 1 < length:
+                    i += 2
+                    continue
+                if line[i] == "'":
+                    i += 1
+                    break
+                i += 1
+            zones.append((start, i))
+            continue
+
+        i += 1
+
+    return zones
+
+
+def _is_in_exclusion_zone(pos: int, zones: list[tuple[int, int]]) -> bool:
+    """Check if a position falls inside any exclusion zone."""
+    return any(start <= pos < end for start, end in zones)
+
+
 def _find_text_references(
     symbol_name: str,
     java_file: Path,
@@ -253,6 +361,7 @@ def _find_text_references(
 
     Finds references that the AST-based search may have missed (e.g., this.field).
     Deduplicates against already-found references.
+    Excludes matches inside string literals and comments.
 
     Args:
         symbol_name: Name of the symbol.
@@ -269,9 +378,14 @@ def _find_text_references(
     pattern = re.compile(r"\b" + re.escape(symbol_name) + r"\b")
 
     for line_num, line_text in enumerate(source_lines, start=1):
+        exclusion_zones = _get_exclusion_zones(line_text)
+
         for match in pattern.finditer(line_text):
             col = match.start() + 1  # 1-based
             if (line_num, col) not in known_positions:
+                # Skip matches inside strings or comments
+                if _is_in_exclusion_zone(match.start(), exclusion_zones):
+                    continue
                 additional.append(
                     SymbolReference(
                         file=java_file,

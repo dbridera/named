@@ -51,7 +51,7 @@ uv pip install -e ".[dev]"
 
 4. **Apply approved renames:**
    ```bash
-   named apply ./report/report.json --project-root ./my-java-project --backup
+   named apply ./report/report.json --project-root ./my-java-project --output-dir ./renamed-project
    ```
 
 ## Usage
@@ -157,7 +157,10 @@ Recommendation:
 Apply validated suggestions from a report directly to your source code:
 
 ```bash
-# Apply with backup (recommended)
+# Apply to a copy (recommended - originals stay untouched)
+named apply ./report/report.json --project-root ./my-java-project --output-dir ./renamed-project
+
+# Apply in-place with backup
 named apply ./report/report.json --project-root ./my-java-project --backup
 
 # Dry run - preview changes without modifying files
@@ -211,7 +214,8 @@ named rules --lang es
 | Option | Description |
 |--------|-------------|
 | `--project-root` | Root directory of the Java project (required) |
-| `--backup` | Create timestamped backup before applying changes |
+| `--output-dir, -o` | Copy project here and apply renames to the copy (originals untouched) |
+| `--backup` | Create timestamped backup before applying changes (in-place mode) |
 | `--dry-run` | Preview changes without modifying files |
 | `--min-confidence` | Minimum confidence threshold (default: `80`) |
 
