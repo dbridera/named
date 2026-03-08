@@ -37,10 +37,8 @@ public class Account {
     private String accountData;
     private String accountInfo;
 
-    // Good names
     private String ownerName;
     private String emailAddress;
-    private Double currentBalance;
 
     public Account() {}
 
@@ -59,19 +57,9 @@ public class Account {
         this.bal = amt;
     }
 
-    // Good method name
-    public void depositAmount(Double amount) {
-        this.currentBalance += amount;
-    }
-
     // R6: Single letter parameters
     public void transfer(Account a, Double b) {
         // a and b don't explain anything
-    }
-
-    // Good parameter names
-    public void transferFunds(Account targetAccount, Double transferAmount) {
-        // Clear and descriptive
     }
 
     // Getters and setters with guardrails (should not be renamed)

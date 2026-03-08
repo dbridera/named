@@ -178,6 +178,110 @@ class BatchAnalysisPrompt(PromptTemplate):
             raise ValueError("rules_context parameter is required")
 
 
+FILE_ANALYSIS_TEMPLATE = """## Java File: {file_name}
+
+```java
+{file_source}
+```
+
+## Symbols to Analyze
+
+The following symbols from this file need naming evaluation:
+
+{symbols_list}
+
+{rules_context}
+
+## Your Task
+
+Analyze each symbol listed above using the **full file source above as context**.
+
+Pay special attention to:
+- The symbol's **declared type** (visible in the source)
+- **Sibling fields/methods** in the same class (for consistency checks)
+- **Method bodies** (for understanding parameter and variable intent)
+- **Annotations** that may act as guardrails (do NOT rename annotated symbols)
+
+Respond with JSON in this exact format:
+```json
+{{
+  "results": [
+    {{
+      "symbol_index": 0,
+      "needs_rename": true,
+      "analysis": "Brief explanation referencing rule IDs",
+      "suggestion": {{
+        "suggested_name": "betterName",
+        "confidence": 0.85,
+        "rationale": "Why this name is better",
+        "rules_addressed": ["R1_REVEAL_INTENT"]
+      }}
+    }},
+    {{
+      "symbol_index": 1,
+      "needs_rename": false,
+      "analysis": "Name is appropriate",
+      "suggestion": null
+    }}
+  ]
+}}
+```
+
+Include an entry for every symbol index. If confidence is below 0.80, set needs_rename to false.
+"""
+
+
+class FileAnalysisPrompt(PromptTemplate):
+    """Prompt for per-file symbol analysis using full source context."""
+
+    version = "1.0.0"
+
+    def render(
+        self,
+        file_name: str,
+        file_source: str,
+        symbols: list[dict[str, Any]],
+        rules_context: str,
+        **kwargs,
+    ) -> str:
+        """Render a per-file analysis prompt.
+
+        Args:
+            file_name: Name of the Java file (e.g., 'Account.java')
+            file_source: Full source code of the file
+            symbols: List of symbol dicts with name, kind, annotations, line
+            rules_context: Pre-rendered rules and guardrails context
+
+        Returns:
+            Formatted prompt string
+        """
+        self.validate_inputs(
+            file_name=file_name,
+            file_source=file_source,
+            symbols=symbols,
+            rules_context=rules_context,
+        )
+
+        symbols_list = "\n".join(
+            f"{i}. `{s['name']}` — {s['kind']}"
+            + (f", line {s['line']}" if s.get("line") else "")
+            + (f", annotations: {s['annotations']}" if s.get("annotations") and s["annotations"] != "None" else "")
+            for i, s in enumerate(symbols)
+        )
+
+        return FILE_ANALYSIS_TEMPLATE.format(
+            file_name=file_name,
+            file_source=file_source,
+            symbols_list=symbols_list,
+            rules_context=rules_context,
+        ).strip()
+
+    def validate_inputs(self, **kwargs) -> None:
+        for key in ("file_name", "file_source", "symbols", "rules_context"):
+            if not kwargs.get(key):
+                raise ValueError(f"{key} parameter is required and must be non-empty")
+
+
 # Factory functions
 def get_rules_context(
     rules: list[NamingRule],

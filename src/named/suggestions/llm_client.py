@@ -11,6 +11,23 @@ from named.rules.models import NameSuggestion
 
 logger = get_logger("llm")
 
+# Method-style name prefixes that are invalid for fields/parameters.
+# Catching LLM hallucinations like "getBalance" suggested for a parameter.
+_METHOD_PREFIXES = (
+    "get", "set", "is", "has", "find", "fetch", "load",
+    "save", "update", "delete", "create", "build",
+)
+
+# Files with more symbols than _CHUNK_THRESHOLD are split into chunks of _CHUNK_SIZE.
+_CHUNK_THRESHOLD = 50
+_CHUNK_SIZE = 25
+
+# Tokens per symbol output entry (rough estimate for JSON output sizing).
+_TOKENS_PER_SYMBOL = 120
+_TOKENS_BASE = 500
+_TOKENS_MAX = 8000
+_TOKENS_MIN = 1000
+
 
 class LLMError(Exception):
     """Exception raised when LLM operations fail."""
@@ -60,24 +77,25 @@ class LLMClient:
         """Total number of API requests made."""
         return self._request_count
 
-    def get_suggestion(self, prompt: str) -> dict[str, Any]:
-        """Send a prompt to the LLM and get a response.
+    def _call_llm(self, prompt: str, max_tokens: int) -> tuple[str, str]:
+        """Make a raw LLM API call.
 
         Args:
-            prompt: The prompt to send
+            prompt: The prompt to send.
+            max_tokens: Maximum output tokens.
 
         Returns:
-            Parsed JSON response from the LLM
+            Tuple of (response_content, finish_reason).
+            finish_reason is "stop" on normal completion, "length" if truncated.
 
         Raises:
-            LLMError: If the API call fails or response is invalid
+            LLMError: On API failure or empty response.
         """
         try:
             if self.verbose:
                 logger.debug("=" * 60)
                 logger.debug("[LLM PROMPT]")
                 logger.debug("=" * 60)
-                # Show truncated prompt in verbose mode
                 if len(prompt) > 500:
                     logger.debug(prompt[:500] + f"\n... ({len(prompt)} chars total)")
                 else:
@@ -86,27 +104,24 @@ class LLMClient:
 
             self._request_count += 1
 
-            # Import system prompt from prompts module
             from named.prompts import get_system_prompt
 
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
-                    {
-                        "role": "system",
-                        "content": get_system_prompt(),
-                    },
+                    {"role": "system", "content": get_system_prompt()},
                     {"role": "user", "content": prompt},
                 ],
-                temperature=0.3,  # Lower temperature for more consistent suggestions
-                max_tokens=1000,
+                temperature=0.3,
+                max_tokens=max_tokens,
             )
 
             content = response.choices[0].message.content
+            finish_reason = response.choices[0].finish_reason or "stop"
+
             if not content:
                 raise LLMError("Empty response from LLM")
 
-            # Track token usage
             if response.usage:
                 self._total_tokens += response.usage.total_tokens
                 if self.verbose:
@@ -123,9 +138,29 @@ class LLMClient:
                 logger.debug(content[:500] if len(content) > 500 else content)
                 logger.debug("=" * 60)
 
-            # Parse JSON from response
-            return self._parse_json_response(content)
+            return content, finish_reason
 
+        except Exception as e:
+            if "LLMError" in str(type(e)):
+                raise
+            raise LLMError(f"LLM API call failed: {e}") from e
+
+    def get_suggestion(self, prompt: str, max_tokens: int = 4000) -> dict[str, Any]:
+        """Send a prompt to the LLM and get a parsed JSON response.
+
+        Args:
+            prompt: The prompt to send.
+            max_tokens: Maximum tokens in the response.
+
+        Returns:
+            Parsed JSON response from the LLM.
+
+        Raises:
+            LLMError: If the API call fails or response is invalid.
+        """
+        try:
+            content, _ = self._call_llm(prompt, max_tokens)
+            return self._parse_json_response(content)
         except json.JSONDecodeError as e:
             raise LLMError(f"Failed to parse LLM response as JSON: {e}") from e
         except Exception as e:
@@ -134,15 +169,7 @@ class LLMClient:
             raise LLMError(f"LLM API call failed: {e}") from e
 
     def _parse_json_response(self, content: str) -> dict[str, Any]:
-        """Parse JSON from LLM response, handling markdown code blocks.
-
-        Args:
-            content: The raw response content
-
-        Returns:
-            Parsed JSON dictionary
-        """
-        # Remove markdown code blocks if present
+        """Parse JSON from LLM response, handling markdown code blocks."""
         content = content.strip()
 
         if content.startswith("```json"):
@@ -156,6 +183,23 @@ class LLMClient:
         content = content.strip()
 
         return json.loads(content)
+
+    def _is_hallucinated(self, suggested_name: str, symbol_kind: str) -> bool:
+        """Return True if the suggestion looks like a method name for a non-method symbol.
+
+        Detects the common hallucination where the LLM suggests a getter/setter-style
+        name for a field or parameter (e.g., 'getBalance' suggested for a parameter).
+        """
+        if symbol_kind not in ("field", "parameter", "constant"):
+            return False
+        for prefix in _METHOD_PREFIXES:
+            if (
+                suggested_name.startswith(prefix)
+                and len(suggested_name) > len(prefix)
+                and suggested_name[len(prefix)].isupper()
+            ):
+                return True
+        return False
 
     def analyze_symbol(
         self,
@@ -201,6 +245,158 @@ class LLMClient:
             rationale=suggestion_data.get("rationale", ""),
             rules_addressed=suggestion_data.get("rules_addressed", []),
         )
+
+    def _analyze_file_chunk(
+        self,
+        file_path: "Path",
+        symbols: list,
+        rules_context: str,
+        source: str,
+    ) -> list["NameSuggestion | None"]:
+        """Analyze a chunk of symbols from a file with one LLM call.
+
+        Uses dynamic max_tokens based on symbol count. Checks finish_reason
+        and warns if output was truncated. Applies hallucination filter to results.
+
+        Returns a list parallel to `symbols`.
+        """
+        from pathlib import Path
+
+        from named.prompts.analysis import FileAnalysisPrompt
+        from named.rules.models import NameSuggestion
+
+        symbol_dicts = [
+            {
+                "name": s.name,
+                "kind": s.kind,
+                "line": s.location.line if s.location else None,
+                "annotations": ", ".join(f"@{a}" for a in s.annotations) if s.annotations else "None",
+            }
+            for s in symbols
+        ]
+
+        # Dynamic max_tokens: scale with symbol count, cap at API limit
+        max_tokens = min(
+            max(_TOKENS_MIN, len(symbols) * _TOKENS_PER_SYMBOL + _TOKENS_BASE),
+            _TOKENS_MAX,
+        )
+
+        prompt = FileAnalysisPrompt().render(
+            file_name=Path(file_path).name,
+            file_source=source,
+            symbols=symbol_dicts,
+            rules_context=rules_context,
+        )
+
+        try:
+            content, finish_reason = self._call_llm(prompt, max_tokens)
+        except Exception as e:
+            logger.warning(f"LLM call failed for {Path(file_path).name}: {e}")
+            return [None] * len(symbols)
+
+        if finish_reason == "length":
+            logger.warning(
+                f"Output truncated for {Path(file_path).name} "
+                f"({len(symbols)} symbols, max_tokens={max_tokens}). "
+                "Some symbols near the end of the list may be missing from results."
+            )
+
+        try:
+            response = self._parse_json_response(content)
+        except json.JSONDecodeError as e:
+            logger.warning(
+                f"JSON parse failed for {Path(file_path).name}: {e}. "
+                "This is likely caused by output truncation."
+            )
+            return [None] * len(symbols)
+
+        results_raw = response.get("results", [])
+        suggestions: list[NameSuggestion | None] = [None] * len(symbols)
+
+        for item in results_raw:
+            idx = item.get("symbol_index")
+            if idx is None or not isinstance(idx, int) or idx < 0 or idx >= len(symbols):
+                continue
+            if not item.get("needs_rename", False):
+                continue
+
+            suggestion_data = item.get("suggestion")
+            if not suggestion_data:
+                continue
+
+            sym = symbols[idx]
+            suggested_name = suggestion_data.get("suggested_name", "")
+
+            # Hallucination filter: fields/parameters must not get method-style names
+            if self._is_hallucinated(suggested_name, sym.kind):
+                logger.warning(
+                    f"Filtered hallucination: {sym.name} ({sym.kind}) → "
+                    f"'{suggested_name}' (looks like a method name)"
+                )
+                continue
+
+            suggestions[idx] = NameSuggestion(
+                original_name=sym.name,
+                suggested_name=suggested_name,
+                symbol_kind=sym.kind,
+                confidence=suggestion_data.get("confidence", 0.0),
+                rationale=suggestion_data.get("rationale", ""),
+                rules_addressed=suggestion_data.get("rules_addressed", []),
+            )
+
+        return suggestions
+
+    def analyze_file(
+        self,
+        file_path: "Path",
+        symbols: list,
+        rules_context: str,
+    ) -> list["NameSuggestion | None"]:
+        """Analyze all symbols in a single Java file with one (or more) API call(s).
+
+        Sends the full file source + symbol list to the LLM, gets back
+        a JSON array of suggestions indexed to the original symbol list.
+
+        Files with more than _CHUNK_SIZE symbols are automatically split into
+        chunks to prevent output truncation and attention dilution.
+
+        Args:
+            file_path: Path to the Java file.
+            symbols: List of Symbol objects from the file.
+            rules_context: Pre-rendered rules context string.
+
+        Returns:
+            List of NameSuggestion | None, parallel to input symbols list.
+            None means the symbol does not need renaming.
+        """
+        from pathlib import Path
+
+        try:
+            source = Path(file_path).read_text(encoding="utf-8")
+        except Exception as e:
+            logger.warning(f"Could not read {file_path}: {e}")
+            return [None] * len(symbols)
+
+        if len(symbols) <= _CHUNK_THRESHOLD:
+            return self._analyze_file_chunk(file_path, symbols, rules_context, source)
+
+        # Large file: split into chunks of _CHUNK_SIZE to prevent output truncation
+        file_name = Path(file_path).name
+        num_chunks = (len(symbols) + _CHUNK_SIZE - 1) // _CHUNK_SIZE
+        logger.info(
+            f"Large file {file_name}: {len(symbols)} symbols → {num_chunks} chunks of {_CHUNK_SIZE}"
+        )
+
+        all_suggestions: list = [None] * len(symbols)
+        for chunk_start in range(0, len(symbols), _CHUNK_SIZE):
+            chunk = symbols[chunk_start: chunk_start + _CHUNK_SIZE]
+            chunk_suggestions = self._analyze_file_chunk(
+                file_path, chunk, rules_context, source
+            )
+            for local_idx, suggestion in enumerate(chunk_suggestions):
+                all_suggestions[chunk_start + local_idx] = suggestion
+
+        return all_suggestions
 
     def analyze_symbols_batch(
         self,

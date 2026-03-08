@@ -11,6 +11,7 @@ from javalang.tree import (
     EnumDeclaration,
     FieldDeclaration,
     InterfaceDeclaration,
+    LocalVariableDeclaration,
     MethodDeclaration,
 )
 
@@ -58,6 +59,9 @@ class Symbol:
     return_type: str | None = None  # For methods
     parameter_types: list[str] = field(default_factory=list)  # For methods
     references: list = field(default_factory=list)  # List of SymbolReference
+    extends_type: str | None = None  # For classes: parent class name
+    implements_types: list[str] = field(default_factory=list)  # For classes: interface names
+    method_locals: dict[str, set[str]] = field(default_factory=dict)  # For types: method → local var names
 
     def is_constant(self) -> bool:
         """Check if this symbol is a constant (static final field)."""
@@ -113,6 +117,46 @@ def _get_position(node, file_path: Path) -> SourceLocation:
     return SourceLocation(file=file_path, line=line, column=column)
 
 
+def _extract_method_locals(type_node) -> dict[str, set[str]]:
+    """Extract local variable and parameter names from each method in a type.
+
+    Args:
+        type_node: A ClassDeclaration, InterfaceDeclaration, or EnumDeclaration.
+
+    Returns:
+        Dict mapping method name to set of local identifier names.
+    """
+    method_locals: dict[str, set[str]] = {}
+
+    if not hasattr(type_node, "body") or not type_node.body:
+        return method_locals
+
+    for member in type_node.body:
+        if not isinstance(member, (MethodDeclaration, ConstructorDeclaration)):
+            continue
+
+        names: set[str] = set()
+
+        # Collect parameter names
+        if hasattr(member, "parameters") and member.parameters:
+            for param in member.parameters:
+                names.add(param.name)
+
+        # Collect local variable names from method body
+        try:
+            for _, local_var in member.filter(LocalVariableDeclaration):
+                if hasattr(local_var, "declarators") and local_var.declarators:
+                    for declarator in local_var.declarators:
+                        names.add(declarator.name)
+        except Exception:
+            pass  # Skip if body traversal fails
+
+        if names:
+            method_locals[member.name] = names
+
+    return method_locals
+
+
 def _extract_from_type_declaration(
     node,
     kind: SymbolKind,
@@ -131,6 +175,21 @@ def _extract_from_type_declaration(
     context_lines = source_lines[max(0, type_location.line - 2) : type_location.line + 5]
     context = "\n".join(context_lines)
 
+    # Read extends/implements from AST
+    extends_type = None
+    implements_types = []
+    if hasattr(node, "extends") and node.extends:
+        if kind == "interface" and isinstance(node.extends, list):
+            # InterfaceDeclaration.extends is a list of ReferenceType
+            implements_types = [ref.name for ref in node.extends]
+        elif hasattr(node.extends, "name"):
+            extends_type = node.extends.name
+    if hasattr(node, "implements") and node.implements:
+        implements_types = [impl.name for impl in node.implements]
+
+    # Extract method-local variable names for shadow collision detection
+    method_locals = _extract_method_locals(node)
+
     symbols.append(
         Symbol(
             name=type_name,
@@ -140,6 +199,9 @@ def _extract_from_type_declaration(
             modifiers=_get_modifiers(node),
             package=package,
             context=context,
+            extends_type=extends_type,
+            implements_types=implements_types,
+            method_locals=method_locals,
         )
     )
 
@@ -188,7 +250,7 @@ def _extract_from_type_declaration(
                                 modifiers=_get_modifiers(param),
                                 parent_class=type_name,
                                 package=package,
-                                context=f"Parameter of method {member.name}",
+                                context="\n".join(method_context),
                             )
                         )
 
@@ -221,6 +283,17 @@ def _extract_from_type_declaration(
                         is_constant = "static" in field_modifiers and "final" in field_modifiers
                         kind: SymbolKind = "constant" if is_constant else "field"
 
+                        # Build context: include the declaration line and a few lines around it
+                        field_line = field_location.line if field_location else None
+                        if field_line and source_lines:
+                            start = max(0, field_line - 3)
+                            end = min(len(source_lines), field_line + 2)
+                            field_context = "\n".join(source_lines[start:end])
+                        else:
+                            # Fallback: include type info at minimum
+                            field_type = str(member.type.name) if hasattr(member, "type") and member.type else "unknown"
+                            field_context = f"{' '.join(field_modifiers)} {field_type} {declarator.name}  // in {type_name}"
+
                         symbols.append(
                             Symbol(
                                 name=declarator.name,
@@ -230,7 +303,7 @@ def _extract_from_type_declaration(
                                 modifiers=field_modifiers,
                                 parent_class=type_name,
                                 package=package,
-                                context=f"Field in {type_name}",
+                                context=field_context,
                             )
                         )
 

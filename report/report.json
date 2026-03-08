@@ -1,26 +1,26 @@
 {
   "metadata": {
     "project_path": "/Users/danielbridera/Work/named/samples/banking-app",
-    "generated_at": "2026-01-14T13:44:55.892206",
+    "generated_at": "2026-01-23T10:10:58.013536",
     "llm_model": "gpt-4o",
     "named_version": "0.1.0"
   },
   "summary": {
     "total_symbols_analyzed": 224,
-    "suggestions_generated": 141,
-    "valid_suggestions": 108,
+    "suggestions_generated": 127,
+    "valid_suggestions": 95,
     "blocked_suggestions": 0,
     "average_confidence": 0.93,
     "violations_by_rule": {
-      "R1_REVEAL_INTENT": 131,
-      "R7_ONE_WORD_PER_CONCEPT": 11,
-      "R2_NO_DISINFORMATION": 5,
-      "R6_NO_MENTAL_MAPPING": 30,
-      "R8_CONTEXT_NAMING": 9,
-      "R3_MEANINGFUL_DISTINCTIONS": 14,
-      "R5_NO_TYPE_ENCODING": 12,
-      "R4_PRONOUNCEABLE": 18,
-      "R9_CORRECT_LANGUAGE": 3
+      "R1_REVEAL_INTENT": 104,
+      "R7_ONE_WORD_PER_CONCEPT": 7,
+      "R2_NO_DISINFORMATION": 4,
+      "R6_NO_MENTAL_MAPPING": 25,
+      "R3_MEANINGFUL_DISTINCTIONS": 15,
+      "R5_NO_TYPE_ENCODING": 13,
+      "R4_PRONOUNCEABLE": 12,
+      "R9_CORRECT_LANGUAGE": 3,
+      "R8_CONTEXT_NAMING": 1
     },
     "symbols_by_kind": {
       "interface": 1,
@@ -34,33 +34,12 @@
     "impact_summary": {
       "high_impact_changes": 0,
       "medium_impact_changes": 0,
-      "low_impact_changes": 40,
+      "low_impact_changes": 127,
       "total_files_affected": 5,
-      "total_changes_with_impact": 40
+      "total_changes_with_impact": 127
     }
   },
   "suggestions": [
-    {
-      "is_valid": true,
-      "suggestion": {
-        "original_name": "id",
-        "suggested_name": "customerId",
-        "symbol_kind": "parameter",
-        "confidence": 0.9,
-        "rationale": "The name 'customerId' provides more context about the type of ID being used, aligning with the method name 'findById' which suggests it's related to a customer entity.",
-        "rules_addressed": [
-          "R1_REVEAL_INTENT"
-        ],
-        "blocked": false,
-        "blocked_reason": null,
-        "location": {
-          "file": "samples/banking-app/src/main/java/com/bank/repository/AccountRepository.java",
-          "line": 13
-        }
-      },
-      "blocked_reasons": [],
-      "rule_violations": []
-    },
     {
       "is_valid": true,
       "suggestion": {
@@ -68,16 +47,22 @@
         "suggested_name": "findAllAccounts",
         "symbol_kind": "method",
         "confidence": 0.95,
-        "rationale": "The name 'findAllAccounts' clearly indicates that the method retrieves all Account objects, aligning with the context of the class and improving consistency with other method names.",
+        "rationale": "The name 'findAllAccounts' clearly indicates that the method retrieves all Account objects, improving clarity and intent.",
         "rules_addressed": [
-          "R1_REVEAL_INTENT",
-          "R7_ONE_WORD_PER_CONCEPT"
+          "R1_REVEAL_INTENT"
         ],
         "blocked": false,
         "blocked_reason": null,
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/repository/AccountRepository.java",
           "line": 14
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -86,11 +71,11 @@
     {
       "is_valid": true,
       "suggestion": {
-        "original_name": "account",
-        "suggested_name": "accountToSave",
-        "symbol_kind": "parameter",
-        "confidence": 0.9,
-        "rationale": "The name 'accountToSave' clearly indicates that this parameter is the account object being saved, providing better context and intent.",
+        "original_name": "save",
+        "suggested_name": "saveAccount",
+        "symbol_kind": "method",
+        "confidence": 0.95,
+        "rationale": "The name 'saveAccount' clearly indicates that the method is responsible for saving an Account object, providing better context and intent.",
         "rules_addressed": [
           "R1_REVEAL_INTENT"
         ],
@@ -99,6 +84,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/repository/AccountRepository.java",
           "line": 15
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -111,7 +103,7 @@
         "suggested_name": "deleteAccount",
         "symbol_kind": "method",
         "confidence": 0.95,
-        "rationale": "The name 'deleteAccount' clearly indicates that the method is responsible for deleting an account, aligning with the semantic purpose of the method.",
+        "rationale": "The name 'deleteAccount' clearly indicates that the method is responsible for deleting an 'Account' object, making the purpose of the method explicit and self-explanatory.",
         "rules_addressed": [
           "R1_REVEAL_INTENT"
         ],
@@ -120,53 +112,51 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/repository/AccountRepository.java",
           "line": 16
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
       "rule_violations": []
     },
     {
-      "is_valid": true,
-      "suggestion": {
-        "original_name": "account",
-        "suggested_name": "accountToDelete",
-        "symbol_kind": "parameter",
-        "confidence": 0.92,
-        "rationale": "The name 'accountToDelete' clearly indicates the purpose of the parameter in the context of the 'delete' method, enhancing clarity.",
-        "rules_addressed": [
-          "R1_REVEAL_INTENT"
-        ],
-        "blocked": false,
-        "blocked_reason": null,
-        "location": {
-          "file": "samples/banking-app/src/main/java/com/bank/repository/AccountRepository.java",
-          "line": 16
-        }
-      },
-      "blocked_reasons": [],
-      "rule_violations": []
-    },
-    {
-      "is_valid": true,
+      "is_valid": false,
       "suggestion": {
         "original_name": "getData",
-        "suggested_name": "findAllAccounts",
+        "suggested_name": "getAccountList",
         "symbol_kind": "method",
-        "confidence": 0.92,
-        "rationale": "The name 'findAllAccounts' clearly indicates that the method retrieves a list of all Account objects, aligning with the purpose of the method and maintaining consistency with the 'find' prefix used in similar methods.",
+        "confidence": 0.95,
+        "rationale": "The name 'getAccountList' clearly indicates that the method returns a list of accounts, which is more descriptive and aligns with the context provided.",
         "rules_addressed": [
-          "R1_REVEAL_INTENT",
-          "R7_ONE_WORD_PER_CONCEPT"
+          "R1_REVEAL_INTENT"
         ],
         "blocked": false,
         "blocked_reason": null,
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/repository/AccountRepository.java",
           "line": 19
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
-      "rule_violations": []
+      "rule_violations": [
+        {
+          "rule_id": "R2_NO_DISINFORMATION",
+          "message": "Violates Avoid Disinformation",
+          "severity": "error"
+        }
+      ]
     },
     {
       "is_valid": true,
@@ -174,8 +164,8 @@
         "original_name": "getInfo",
         "suggested_name": "getAccountDetails",
         "symbol_kind": "method",
-        "confidence": 0.9,
-        "rationale": "The name 'getAccountDetails' provides a clearer indication of the method's purpose, assuming it retrieves details related to an account, thus addressing the lack of intent in the original name.",
+        "confidence": 0.95,
+        "rationale": "The name 'getAccountDetails' clearly indicates that the method retrieves specific details related to an account, aligning with the context of the surrounding code.",
         "rules_addressed": [
           "R1_REVEAL_INTENT"
         ],
@@ -184,6 +174,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/repository/AccountRepository.java",
           "line": 20
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -196,7 +193,7 @@
         "suggested_name": "findByAccountNumber",
         "symbol_kind": "method",
         "confidence": 0.95,
-        "rationale": "Using 'find' aligns with other methods like 'findByPhoneNumber', ensuring consistency across similar methods.",
+        "rationale": "Using 'find' aligns with other method names in the context, providing consistency and clarity.",
         "rules_addressed": [
           "R7_ONE_WORD_PER_CONCEPT"
         ],
@@ -205,6 +202,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/repository/AccountRepository.java",
           "line": 23
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -217,7 +221,7 @@
         "suggested_name": "findByCustomerId",
         "symbol_kind": "method",
         "confidence": 0.95,
-        "rationale": "The name 'findByCustomerId' aligns with the naming convention used by other methods in the context, promoting consistency and clarity.",
+        "rationale": "Using 'find' aligns with the naming convention used in similar methods like 'findByPhoneNumber', ensuring consistency and clarity.",
         "rules_addressed": [
           "R7_ONE_WORD_PER_CONCEPT"
         ],
@@ -226,6 +230,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/repository/AccountRepository.java",
           "line": 24
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -238,7 +249,7 @@
         "suggested_name": "findByEmail",
         "symbol_kind": "method",
         "confidence": 0.95,
-        "rationale": "The name 'findByEmail' aligns with the naming convention used by similar methods in the same context, maintaining consistency and clarity.",
+        "rationale": "Using 'findByEmail' aligns with the naming convention used by other similar methods like 'findByPhoneNumber', ensuring consistency and clarity.",
         "rules_addressed": [
           "R7_ONE_WORD_PER_CONCEPT"
         ],
@@ -247,27 +258,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/repository/AccountRepository.java",
           "line": 25
-        }
-      },
-      "blocked_reasons": [],
-      "rule_violations": []
-    },
-    {
-      "is_valid": true,
-      "suggestion": {
-        "original_name": "email",
-        "suggested_name": "customerEmail",
-        "symbol_kind": "parameter",
-        "confidence": 0.9,
-        "rationale": "The name 'customerEmail' provides more context by indicating that the email is related to a customer, aligning with the method's purpose of retrieving data by email.",
-        "rules_addressed": [
-          "R1_REVEAL_INTENT"
-        ],
-        "blocked": false,
-        "blocked_reason": null,
-        "location": {
-          "file": "samples/banking-app/src/main/java/com/bank/repository/AccountRepository.java",
-          "line": 25
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -280,7 +277,7 @@
         "suggested_name": "findAccountByCriteria",
         "symbol_kind": "method",
         "confidence": 0.95,
-        "rationale": "The suggested name 'findAccountByCriteria' clearly indicates that the method finds a single account based on the given criteria, addressing the disinformation and revealing the method's intent.",
+        "rationale": "The name 'findAccountByCriteria' clearly indicates that the method finds a single account based on the provided criteria, addressing both the disinformation and intent issues.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R2_NO_DISINFORMATION"
@@ -290,6 +287,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/repository/AccountRepository.java",
           "line": 31
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -301,8 +305,8 @@
         "original_name": "criteria",
         "suggested_name": "accountSearchCriteria",
         "symbol_kind": "parameter",
-        "confidence": 0.9,
-        "rationale": "The name 'accountSearchCriteria' is more descriptive and indicates that the parameter is used to specify the criteria for searching accounts.",
+        "confidence": 0.92,
+        "rationale": "The name 'accountSearchCriteria' provides a clearer indication of the parameter's purpose, specifying that it is used for searching accounts, thus addressing the intent revelation issue.",
         "rules_addressed": [
           "R1_REVEAL_INTENT"
         ],
@@ -311,6 +315,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/repository/AccountRepository.java",
           "line": 31
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -322,8 +333,8 @@
         "original_name": "q",
         "suggested_name": "query",
         "symbol_kind": "parameter",
-        "confidence": 0.95,
-        "rationale": "The name 'query' clearly indicates that the parameter is used for search purposes, aligning with the method name 'searchAccounts'.",
+        "confidence": 0.9,
+        "rationale": "The name 'query' provides a clearer indication of the parameter's purpose in the context of a search operation.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R6_NO_MENTAL_MAPPING"
@@ -333,6 +344,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/repository/AccountRepository.java",
           "line": 34
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -345,7 +363,7 @@
         "suggested_name": "pageNumber",
         "symbol_kind": "parameter",
         "confidence": 0.95,
-        "rationale": "The name 'pageNumber' clearly indicates that the parameter is likely used to specify a page in a pagination context, aligning with the method's purpose of searching accounts.",
+        "rationale": "The name 'pageNumber' clearly indicates the purpose of the parameter, which is likely related to pagination in the searchAccounts method.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R6_NO_MENTAL_MAPPING"
@@ -355,6 +373,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/repository/AccountRepository.java",
           "line": 34
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -367,7 +392,7 @@
         "suggested_name": "searchZone",
         "symbol_kind": "parameter",
         "confidence": 0.9,
-        "rationale": "The name 'searchZone' provides a clear indication of the parameter's purpose in the context of the 'searchAccounts' method, addressing the need for intent revelation and eliminating mental mapping.",
+        "rationale": "The name 'searchZone' provides a clearer indication of the parameter's role in the method, improving readability and understanding.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R6_NO_MENTAL_MAPPING"
@@ -377,6 +402,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/repository/AccountRepository.java",
           "line": 34
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -388,17 +420,23 @@
         "original_name": "updateStatus",
         "suggested_name": "updateAccountStatus",
         "symbol_kind": "method",
-        "confidence": 0.9,
-        "rationale": "The suggested name 'updateAccountStatus' provides clearer intent by specifying that it updates the status of an account, aligning with R1_REVEAL_INTENT and R8_CONTEXT_NAMING.",
+        "confidence": 0.95,
+        "rationale": "The name 'updateAccountStatus' is more descriptive and clearly indicates that the method updates the status of an account, addressing the need for clarity and specificity.",
         "rules_addressed": [
-          "R1_REVEAL_INTENT",
-          "R8_CONTEXT_NAMING"
+          "R1_REVEAL_INTENT"
         ],
         "blocked": false,
         "blocked_reason": null,
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/repository/AccountRepository.java",
           "line": 38
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -410,8 +448,8 @@
         "original_name": "a",
         "suggested_name": "status",
         "symbol_kind": "parameter",
-        "confidence": 0.9,
-        "rationale": "The name 'status' is more descriptive and indicates that the parameter is likely related to the status being updated, improving code readability.",
+        "confidence": 0.95,
+        "rationale": "The name 'status' provides clarity about the parameter's purpose in the method 'updateStatus', improving code readability and intent revelation.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R6_NO_MENTAL_MAPPING"
@@ -461,7 +499,7 @@
         "suggested_name": "status",
         "symbol_kind": "parameter",
         "confidence": 0.95,
-        "rationale": "The name 'status' clearly indicates the purpose of the parameter in the context of the method 'updateStatus'.",
+        "rationale": "The name 'status' clearly indicates the purpose of the parameter in the context of the method 'updateStatus', addressing R1_REVEAL_INTENT.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R6_NO_MENTAL_MAPPING"
@@ -511,7 +549,7 @@
         "suggested_name": "findAccountById",
         "symbol_kind": "method",
         "confidence": 0.95,
-        "rationale": "The suggested name 'findAccountById' is concise, removes unnecessary noise words, and clearly conveys the method's purpose of finding an account by its ID.",
+        "rationale": "The suggested name 'findAccountById' is more concise and removes redundant words, making it clearer and more aligned with Java naming conventions.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R3_MEANINGFUL_DISTINCTIONS"
@@ -521,6 +559,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/repository/AccountRepository.java",
           "line": 42
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -533,7 +578,7 @@
         "suggested_name": "accountId",
         "symbol_kind": "parameter",
         "confidence": 0.95,
-        "rationale": "The name 'accountId' clearly indicates that the parameter represents the identifier of an account, aligning with the method's purpose of finding an account by its ID.",
+        "rationale": "The name 'accountId' is more specific and reveals the intent by indicating that the ID is associated with an account, which aligns with the method name 'findTheAccountByTheId'.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R3_MEANINGFUL_DISTINCTIONS"
@@ -543,6 +588,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/repository/AccountRepository.java",
           "line": 42
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -555,7 +607,7 @@
         "suggested_name": "getAllAccounts",
         "symbol_kind": "method",
         "confidence": 0.95,
-        "rationale": "The name 'getAllAccounts' is concise and clearly indicates that the method retrieves all accounts, adhering to R1_REVEAL_INTENT and R3_MEANINGFUL_DISTINCTIONS by removing unnecessary words.",
+        "rationale": "The name 'getAllAccounts' is concise and clearly indicates the method's purpose of retrieving all accounts without unnecessary semantic noise.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R3_MEANINGFUL_DISTINCTIONS"
@@ -565,6 +617,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/repository/AccountRepository.java",
           "line": 43
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -577,7 +636,7 @@
         "suggested_name": "getAccountNumber",
         "symbol_kind": "method",
         "confidence": 0.95,
-        "rationale": "The suggested name 'getAccountNumber' removes the type encoding and is consistent with common naming conventions for methods that retrieve account numbers.",
+        "rationale": "Removing the type encoding 'String' aligns with Java naming conventions and makes the method name more concise and clear.",
         "rules_addressed": [
           "R5_NO_TYPE_ENCODING"
         ],
@@ -586,6 +645,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/repository/AccountRepository.java",
           "line": 46
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -595,12 +661,11 @@
       "is_valid": true,
       "suggestion": {
         "original_name": "getBalanceLong",
-        "suggested_name": "getAccountBalance",
+        "suggested_name": "getBalance",
         "symbol_kind": "method",
-        "confidence": 0.9,
-        "rationale": "The name 'getAccountBalance' removes the type encoding and better describes the method's purpose, which is to retrieve the balance for a given account number.",
+        "confidence": 0.95,
+        "rationale": "The suggested name 'getBalance' removes type encoding, making it more aligned with Java naming conventions and focusing on the method's purpose rather than its return type.",
         "rules_addressed": [
-          "R1_REVEAL_INTENT",
           "R5_NO_TYPE_ENCODING"
         ],
         "blocked": false,
@@ -608,6 +673,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/repository/AccountRepository.java",
           "line": 47
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -620,7 +692,7 @@
         "suggested_name": "accountStatus",
         "symbol_kind": "parameter",
         "confidence": 0.9,
-        "rationale": "The name 'accountStatus' is more descriptive and indicates that the status pertains to an account, aligning with the method's context of finding by account number.",
+        "rationale": "The name 'accountStatus' is more descriptive and indicates that the status pertains to an account, aligning with the method's purpose.",
         "rules_addressed": [
           "R1_REVEAL_INTENT"
         ],
@@ -629,6 +701,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/repository/AccountRepository.java",
           "line": 52
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -638,10 +717,10 @@
       "is_valid": false,
       "suggestion": {
         "original_name": "DataHelper",
-        "suggested_name": "DataProcessingHelper",
+        "suggested_name": "CustomerDataProcessor",
         "symbol_kind": "class",
         "confidence": 0.9,
-        "rationale": "The name 'DataProcessingHelper' provides a clearer indication of the class's role in processing data, aligning with R1_REVEAL_INTENT and making a meaningful distinction as per R3_MEANINGFUL_DISTINCTIONS.",
+        "rationale": "The name 'CustomerDataProcessor' suggests that the class is responsible for processing customer-related data, providing clear intent and context.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R3_MEANINGFUL_DISTINCTIONS"
@@ -651,6 +730,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/util/DataHelper.java",
           "line": 10
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -674,7 +760,7 @@
         "suggested_name": "MAX_DATA_ENTRIES",
         "symbol_kind": "constant",
         "confidence": 0.9,
-        "rationale": "The name 'MAX_DATA_ENTRIES' provides a clear indication of what the maximum value pertains to, aligning with the context of the DataHelper class.",
+        "rationale": "The name 'MAX_DATA_ENTRIES' provides clarity on what the maximum value pertains to, specifically indicating it is related to data entries in the context of DataHelper.",
         "rules_addressed": [
           "R1_REVEAL_INTENT"
         ],
@@ -683,6 +769,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/util/DataHelper.java",
           "line": 13
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -703,10 +796,10 @@
       "is_valid": false,
       "suggestion": {
         "original_name": "DEFAULT",
-        "suggested_name": "defaultDataFormat",
+        "suggested_name": "DEFAULT_DATA_FORMAT",
         "symbol_kind": "constant",
         "confidence": 0.9,
-        "rationale": "The name 'defaultDataFormat' provides a clearer understanding of what the constant represents, assuming it relates to a default format or setting in the DataHelper context.",
+        "rationale": "The name 'DEFAULT_DATA_FORMAT' provides a clearer understanding of what the default value is related to, assuming it pertains to data formatting in DataHelper.",
         "rules_addressed": [
           "R1_REVEAL_INTENT"
         ],
@@ -715,6 +808,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/util/DataHelper.java",
           "line": 14
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -737,8 +837,8 @@
         "original_name": "RATE",
         "suggested_name": "interestRate",
         "symbol_kind": "constant",
-        "confidence": 0.9,
-        "rationale": "The name 'interestRate' provides specific context and reveals the intent of the constant, making it clear that it refers to a financial rate.",
+        "confidence": 0.95,
+        "rationale": "The name 'interestRate' provides clear context and intent, indicating that the constant likely represents an interest rate, which is more descriptive and meaningful.",
         "rules_addressed": [
           "R1_REVEAL_INTENT"
         ],
@@ -747,6 +847,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/util/DataHelper.java",
           "line": 15
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -759,7 +866,7 @@
         "suggested_name": "generationTimestamp",
         "symbol_kind": "field",
         "confidence": 0.95,
-        "rationale": "The name 'generationTimestamp' is pronounceable and clearly indicates that the field represents a timestamp related to generation, addressing both the intent and readability issues.",
+        "rationale": "The name 'generationTimestamp' is more descriptive and easier to understand, indicating that it likely represents a timestamp related to generation, which addresses the clarity and pronunciation issues.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R4_PRONOUNCEABLE"
@@ -769,6 +876,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/util/DataHelper.java",
           "line": 23
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -781,7 +895,7 @@
         "suggested_name": "modificationTimestamp",
         "symbol_kind": "field",
         "confidence": 0.95,
-        "rationale": "The name 'modificationTimestamp' clearly indicates that the field represents a timestamp related to a modification, making it more understandable and pronounceable.",
+        "rationale": "The name 'modificationTimestamp' is clear and self-explanatory, indicating it likely stores a timestamp related to a modification event.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R4_PRONOUNCEABLE"
@@ -791,19 +905,26 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/util/DataHelper.java",
           "line": 24
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
       "rule_violations": []
     },
     {
-      "is_valid": false,
+      "is_valid": true,
       "suggestion": {
         "original_name": "n",
-        "suggested_name": "dataCount",
+        "suggested_name": "numberOfRecords",
         "symbol_kind": "field",
-        "confidence": 0.95,
-        "rationale": "The name 'dataCount' provides a clearer indication of the field's purpose, suggesting it holds a count or number related to data, which is more descriptive and self-explanatory.",
+        "confidence": 0.9,
+        "rationale": "The name 'numberOfRecords' provides clear intent and context, indicating what the field represents.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R6_NO_MENTAL_MAPPING"
@@ -813,21 +934,17 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/util/DataHelper.java",
           "line": 31
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
-      "rule_violations": [
-        {
-          "rule_id": "R1_REVEAL_INTENT",
-          "message": "Contains discouraged token 'data'",
-          "severity": "error"
-        },
-        {
-          "rule_id": "R3_MEANINGFUL_DISTINCTIONS",
-          "message": "Contains discouraged token 'Data'",
-          "severity": "error"
-        }
-      ]
+      "rule_violations": []
     },
     {
       "is_valid": true,
@@ -836,7 +953,7 @@
         "suggested_name": "status",
         "symbol_kind": "field",
         "confidence": 0.9,
-        "rationale": "The name 'status' is more descriptive and likely reflects the purpose of the field in a DataHelper context, addressing the need for revealing intent.",
+        "rationale": "The name 'status' provides a clearer understanding of what the field might represent, improving code readability and maintainability.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R6_NO_MENTAL_MAPPING"
@@ -883,10 +1000,10 @@
       "is_valid": false,
       "suggestion": {
         "original_name": "o",
-        "suggested_name": "orderData",
+        "suggested_name": "dataObject",
         "symbol_kind": "field",
-        "confidence": 0.95,
-        "rationale": "The name 'orderData' provides a clear understanding of the field's purpose, assuming it relates to order information in the DataHelper context.",
+        "confidence": 0.9,
+        "rationale": "The name 'dataObject' provides more context and intent, indicating that it holds a data-related object, which is more descriptive than a single-letter variable.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R6_NO_MENTAL_MAPPING"
@@ -896,6 +1013,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/util/DataHelper.java",
           "line": 33
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -907,7 +1031,7 @@
         },
         {
           "rule_id": "R3_MEANINGFUL_DISTINCTIONS",
-          "message": "Violates Meaningful Distinctions",
+          "message": "Contains discouraged token 'Data'",
           "severity": "error"
         }
       ]
@@ -919,16 +1043,23 @@
         "suggested_name": "dataList",
         "symbol_kind": "field",
         "confidence": 0.95,
-        "rationale": "The name 'dataList' suggests that the field is likely a collection of data, revealing its intent and eliminating the need for mental mapping.",
+        "rationale": "The name 'dataList' provides a clearer understanding of the field's purpose, assuming it holds a list of data elements.",
         "rules_addressed": [
-          "R1_REVEAL_INTENT",
-          "R6_NO_MENTAL_MAPPING"
+          "R6_NO_MENTAL_MAPPING",
+          "R1_REVEAL_INTENT"
         ],
         "blocked": false,
         "blocked_reason": null,
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/util/DataHelper.java",
           "line": 34
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -957,7 +1088,7 @@
         "suggested_name": "initializeApplication",
         "symbol_kind": "method",
         "confidence": 0.9,
-        "rationale": "The name 'initializeApplication' provides a clearer understanding of what is being initialized, addressing the lack of intent in the original name.",
+        "rationale": "The name 'initializeApplication' provides a clearer understanding of what the method is intended to do, assuming it initializes the application or a major component of it.",
         "rules_addressed": [
           "R1_REVEAL_INTENT"
         ],
@@ -966,6 +1097,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/util/DataHelper.java",
           "line": 37
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -975,10 +1113,10 @@
       "is_valid": true,
       "suggestion": {
         "original_name": "convert",
-        "suggested_name": "convertToTargetFormat",
+        "suggested_name": "convertToTargetType",
         "symbol_kind": "method",
-        "confidence": 0.9,
-        "rationale": "The suggested name 'convertToTargetFormat' provides more context about the method's purpose, indicating that the method is intended to convert the input to a specific target format.",
+        "confidence": 0.92,
+        "rationale": "The name 'convertToTargetType' provides more context about the method's purpose, indicating that it converts the input to a specific target type, which aligns with R1_REVEAL_INTENT.",
         "rules_addressed": [
           "R1_REVEAL_INTENT"
         ],
@@ -987,6 +1125,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/util/DataHelper.java",
           "line": 41
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -999,7 +1144,7 @@
         "suggested_name": "sourceData",
         "symbol_kind": "parameter",
         "confidence": 0.9,
-        "rationale": "The name 'sourceData' provides a clearer indication of the parameter's role in the conversion process, aligning with R1_REVEAL_INTENT.",
+        "rationale": "The name 'sourceData' provides more context about the parameter's role in the conversion process, indicating that it is the data to be converted.",
         "rules_addressed": [
           "R1_REVEAL_INTENT"
         ],
@@ -1082,10 +1227,10 @@
       "is_valid": true,
       "suggestion": {
         "original_name": "check",
-        "suggested_name": "isValueNotNull",
+        "suggested_name": "isValueNonNull",
         "symbol_kind": "method",
         "confidence": 0.95,
-        "rationale": "The name 'isValueNotNull' clearly indicates that the method checks if the provided value is not null, revealing the intent of the method.",
+        "rationale": "The name 'isValueNonNull' clearly indicates that the method checks if the provided value is not null, making the purpose of the method explicit.",
         "rules_addressed": [
           "R1_REVEAL_INTENT"
         ],
@@ -1094,6 +1239,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/util/DataHelper.java",
           "line": 46
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -1103,10 +1255,10 @@
       "is_valid": true,
       "suggestion": {
         "original_name": "value",
-        "suggested_name": "thresholdValue",
+        "suggested_name": "amountToCheck",
         "symbol_kind": "parameter",
-        "confidence": 0.9,
-        "rationale": "The name 'thresholdValue' suggests that the parameter represents a threshold, which is likely relevant to the method 'check'.",
+        "confidence": 0.92,
+        "rationale": "The name 'amountToCheck' provides more context about the parameter's purpose in the 'check' method, making it clear that it represents an amount to be verified.",
         "rules_addressed": [
           "R1_REVEAL_INTENT"
         ],
@@ -1155,7 +1307,7 @@
         "suggested_name": "formatToString",
         "symbol_kind": "method",
         "confidence": 0.9,
-        "rationale": "The name 'formatToString' is more descriptive and indicates that the method formats the object to a string representation, addressing the lack of intent revelation.",
+        "rationale": "The name 'formatToString' clearly indicates that the method is formatting the object to a string representation, which aligns with the method's functionality.",
         "rules_addressed": [
           "R1_REVEAL_INTENT"
         ],
@@ -1210,7 +1362,7 @@
         "suggested_name": "formattedContent",
         "symbol_kind": "parameter",
         "confidence": 0.95,
-        "rationale": "The name 'formattedContent' provides a clearer understanding of what the parameter represents in the context of a method named 'format'.",
+        "rationale": "The name 'formattedContent' provides a clearer indication of the parameter's purpose in the context of a method named 'format'.",
         "rules_addressed": [
           "R1_REVEAL_INTENT"
         ],
@@ -1256,10 +1408,10 @@
       "is_valid": false,
       "suggestion": {
         "original_name": "processTheData",
-        "suggested_name": "processCustomerData",
+        "suggested_name": "transformInputData",
         "symbol_kind": "method",
-        "confidence": 0.9,
-        "rationale": "The name 'processCustomerData' is more specific and reveals the intent of processing customer-related data, addressing the issues of generic naming and semantic noise.",
+        "confidence": 0.92,
+        "rationale": "The name 'transformInputData' is more specific and descriptive, indicating the method's purpose of transforming the input data.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R3_MEANINGFUL_DISTINCTIONS"
@@ -1269,13 +1421,20 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/util/DataHelper.java",
           "line": 57
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
       "rule_violations": [
         {
           "rule_id": "R1_REVEAL_INTENT",
-          "message": "Violates Reveal Intent",
+          "message": "Contains discouraged token 'data'",
           "severity": "error"
         },
         {
@@ -1286,13 +1445,13 @@
       ]
     },
     {
-      "is_valid": true,
+      "is_valid": false,
       "suggestion": {
         "original_name": "theData",
-        "suggested_name": "transactionDetails",
+        "suggested_name": "customerData",
         "symbol_kind": "parameter",
         "confidence": 0.9,
-        "rationale": "The name 'transactionDetails' provides a clearer understanding of the parameter's purpose, assuming it relates to transaction processing, and aligns with the method name 'processTheData'.",
+        "rationale": "The name 'customerData' is more descriptive and indicates the type of data being processed, aligning with the method's likely purpose.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R3_MEANINGFUL_DISTINCTIONS"
@@ -1333,25 +1492,42 @@
         }
       },
       "blocked_reasons": [],
-      "rule_violations": []
+      "rule_violations": [
+        {
+          "rule_id": "R1_REVEAL_INTENT",
+          "message": "Contains discouraged token 'data'",
+          "severity": "error"
+        },
+        {
+          "rule_id": "R3_MEANINGFUL_DISTINCTIONS",
+          "message": "Violates Meaningful Distinctions",
+          "severity": "error"
+        }
+      ]
     },
     {
       "is_valid": false,
       "suggestion": {
         "original_name": "handleTheRequest",
-        "suggested_name": "processRequest",
+        "suggested_name": "processClientRequest",
         "symbol_kind": "method",
         "confidence": 0.9,
-        "rationale": "The name 'processRequest' clearly indicates that the method is intended to perform some processing on the request object, aligning with R1_REVEAL_INTENT and removing unnecessary words.",
+        "rationale": "The suggested name 'processClientRequest' is more specific and descriptive, indicating that the method processes a client request, thus revealing its intent more clearly.",
         "rules_addressed": [
-          "R1_REVEAL_INTENT",
-          "R3_MEANINGFUL_DISTINCTIONS"
+          "R1_REVEAL_INTENT"
         ],
         "blocked": false,
         "blocked_reason": null,
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/util/DataHelper.java",
           "line": 61
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -1367,18 +1543,25 @@
       "is_valid": true,
       "suggestion": {
         "original_name": "theRequest",
-        "suggested_name": "clientRequest",
+        "suggested_name": "request",
         "symbol_kind": "parameter",
-        "confidence": 0.9,
-        "rationale": "The name 'clientRequest' better indicates that the parameter represents a request from a client, providing more context and clarity.",
+        "confidence": 0.95,
+        "rationale": "The name 'request' is concise and directly conveys the parameter's purpose without unnecessary semantic noise.",
         "rules_addressed": [
-          "R1_REVEAL_INTENT"
+          "R3_MEANINGFUL_DISTINCTIONS"
         ],
         "blocked": false,
         "blocked_reason": null,
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/util/DataHelper.java",
           "line": 61
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -1391,9 +1574,8 @@
         "suggested_name": "formatString",
         "symbol_kind": "method",
         "confidence": 0.95,
-        "rationale": "The name 'formatString' removes type encoding and clearly indicates the method's purpose of formatting a string.",
+        "rationale": "The name 'formatString' removes type encoding and better describes the method's purpose, aligning with Java naming conventions.",
         "rules_addressed": [
-          "R1_REVEAL_INTENT",
           "R5_NO_TYPE_ENCODING"
         ],
         "blocked": false,
@@ -1401,6 +1583,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/util/DataHelper.java",
           "line": 66
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -1413,13 +1602,13 @@
       ]
     },
     {
-      "is_valid": true,
+      "is_valid": false,
       "suggestion": {
         "original_name": "input",
-        "suggested_name": "stringToFormat",
+        "suggested_name": "formatString",
         "symbol_kind": "parameter",
         "confidence": 0.9,
-        "rationale": "The name 'stringToFormat' clearly indicates that the parameter is a string that will be formatted by the method, thus revealing its intent.",
+        "rationale": "The name 'formatString' clearly indicates that the parameter is a string used for formatting, aligning with the method name 'strFormat'.",
         "rules_addressed": [
           "R1_REVEAL_INTENT"
         ],
@@ -1485,7 +1674,13 @@
         }
       },
       "blocked_reasons": [],
-      "rule_violations": []
+      "rule_violations": [
+        {
+          "rule_id": "R5_NO_TYPE_ENCODING",
+          "message": "Violates No Type Encoding",
+          "severity": "error"
+        }
+      ]
     },
     {
       "is_valid": false,
@@ -1494,9 +1689,8 @@
         "suggested_name": "parseInteger",
         "symbol_kind": "method",
         "confidence": 0.95,
-        "rationale": "The name 'parseInteger' clearly indicates that the method is parsing a string into an integer, addressing both the intent and avoiding type encoding.",
+        "rationale": "The name 'parseInteger' avoids type encoding and clearly describes the method's purpose of parsing a String into an Integer.",
         "rules_addressed": [
-          "R1_REVEAL_INTENT",
           "R5_NO_TYPE_ENCODING"
         ],
         "blocked": false,
@@ -1504,6 +1698,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/util/DataHelper.java",
           "line": 70
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -1522,7 +1723,7 @@
         "suggested_name": "numberString",
         "symbol_kind": "parameter",
         "confidence": 0.9,
-        "rationale": "The name 'numberString' better indicates that the input is expected to be a string representation of a number, which aligns with the method's purpose of parsing an integer.",
+        "rationale": "The name 'numberString' clearly indicates that the parameter is expected to be a string representing a number, aligning with the method's purpose of parsing an integer.",
         "rules_addressed": [
           "R1_REVEAL_INTENT"
         ],
@@ -1603,7 +1804,7 @@
         "suggested_name": "isNotNull",
         "symbol_kind": "method",
         "confidence": 0.95,
-        "rationale": "The name 'isNotNull' clearly indicates that the method checks whether an object is not null, which aligns with the method's functionality.",
+        "rationale": "The name 'isNotNull' clearly indicates that the method checks if an object is not null, which aligns with its functionality.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R5_NO_TYPE_ENCODING"
@@ -1613,22 +1814,28 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/util/DataHelper.java",
           "line": 74
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
       "rule_violations": []
     },
     {
-      "is_valid": false,
+      "is_valid": true,
       "suggestion": {
         "original_name": "obj",
-        "suggested_name": "conditionObject",
+        "suggested_name": "condition",
         "symbol_kind": "parameter",
         "confidence": 0.9,
-        "rationale": "The name 'conditionObject' provides a clearer indication of the parameter's role in the method 'boolCheck', suggesting it is related to a condition being checked.",
+        "rationale": "The name 'condition' suggests that the parameter is used to evaluate a boolean condition, which aligns with the method name 'boolCheck'.",
         "rules_addressed": [
-          "R1_REVEAL_INTENT",
-          "R6_NO_MENTAL_MAPPING"
+          "R1_REVEAL_INTENT"
         ],
         "blocked": false,
         "blocked_reason": null,
@@ -1666,108 +1873,16 @@
         }
       },
       "blocked_reasons": [],
-      "rule_violations": [
-        {
-          "rule_id": "R1_REVEAL_INTENT",
-          "message": "Contains discouraged token 'object'",
-          "severity": "error"
-        },
-        {
-          "rule_id": "R3_MEANINGFUL_DISTINCTIONS",
-          "message": "Contains discouraged token 'Object'",
-          "severity": "error"
-        }
-      ]
-    },
-    {
-      "is_valid": true,
-      "suggestion": {
-        "original_name": "amount",
-        "suggested_name": "currencyAmount",
-        "symbol_kind": "parameter",
-        "confidence": 0.9,
-        "rationale": "The name 'currencyAmount' provides more context and clarity, indicating that the amount is related to currency, which aligns with the method's purpose of formatting currency.",
-        "rules_addressed": [
-          "R1_REVEAL_INTENT"
-        ],
-        "blocked": false,
-        "blocked_reason": null,
-        "references": [
-          {
-            "file": "samples/banking-app/src/main/java/com/bank/util/DataHelper.java",
-            "line": 80,
-            "column": 39,
-            "code_snippet": "return String.format(\"$%.2f\", amount);",
-            "usage_type": "read"
-          },
-          {
-            "file": "samples/banking-app/src/main/java/com/bank/model/Account.java",
-            "line": 64,
-            "column": 32,
-            "code_snippet": "this.currentBalance += amount;",
-            "usage_type": "write"
-          },
-          {
-            "file": "samples/banking-app/src/main/java/com/bank/service/PaymentController.java",
-            "line": 82,
-            "column": 13,
-            "code_snippet": "if (amount <= 0) {",
-            "usage_type": "read"
-          }
-        ],
-        "reference_count": 3,
-        "location": {
-          "file": "samples/banking-app/src/main/java/com/bank/util/DataHelper.java",
-          "line": 79
-        },
-        "impact_analysis": {
-          "total_references": 3,
-          "affected_file_count": 3,
-          "affected_files": [
-            "samples/banking-app/src/main/java/com/bank/util/DataHelper.java",
-            "samples/banking-app/src/main/java/com/bank/model/Account.java",
-            "samples/banking-app/src/main/java/com/bank/service/PaymentController.java"
-          ],
-          "risk_level": "low",
-          "references_by_file": {
-            "samples/banking-app/src/main/java/com/bank/util/DataHelper.java": [
-              {
-                "line": 80,
-                "column": 39,
-                "code_snippet": "        return String.format(\"$%.2f\", amount);",
-                "usage_type": "read"
-              }
-            ],
-            "samples/banking-app/src/main/java/com/bank/model/Account.java": [
-              {
-                "line": 64,
-                "column": 32,
-                "code_snippet": "        this.currentBalance += amount;",
-                "usage_type": "write"
-              }
-            ],
-            "samples/banking-app/src/main/java/com/bank/service/PaymentController.java": [
-              {
-                "line": 82,
-                "column": 13,
-                "code_snippet": "        if (amount <= 0) {",
-                "usage_type": "read"
-              }
-            ]
-          }
-        }
-      },
-      "blocked_reasons": [],
       "rule_violations": []
     },
     {
       "is_valid": true,
       "suggestion": {
         "original_name": "dateString",
-        "suggested_name": "transactionDateInput",
+        "suggested_name": "transactionDate",
         "symbol_kind": "parameter",
-        "confidence": 0.9,
-        "rationale": "The name 'transactionDateInput' clearly indicates that the parameter is an input related to a transaction date, improving clarity and removing type encoding.",
+        "confidence": 0.95,
+        "rationale": "The name 'transactionDate' reveals the purpose of the parameter without encoding the type, aligning with R1_REVEAL_INTENT and R5_NO_TYPE_ENCODING.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R5_NO_TYPE_ENCODING"
@@ -1777,6 +1892,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/util/DataHelper.java",
           "line": 87
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -1789,9 +1911,8 @@
         "suggested_name": "activate",
         "symbol_kind": "method",
         "confidence": 0.95,
-        "rationale": "The name 'activate' aligns with the consistent pattern of using 'activate/deactivate' or 'enable/disable', providing clear intent and consistency across the codebase.",
+        "rationale": "The name 'activate' aligns with the consistent terminology used in similar methods such as 'activateAccount', providing clarity and consistency.",
         "rules_addressed": [
-          "R1_REVEAL_INTENT",
           "R7_ONE_WORD_PER_CONCEPT"
         ],
         "blocked": false,
@@ -1799,6 +1920,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/util/DataHelper.java",
           "line": 93
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -1810,11 +1938,10 @@
         "original_name": "obj",
         "suggested_name": "account",
         "symbol_kind": "parameter",
-        "confidence": 0.9,
-        "rationale": "The name 'account' is more descriptive and likely aligns with the method purpose 'makeActive', suggesting that the parameter represents an account to be activated.",
+        "confidence": 0.95,
+        "rationale": "The name 'account' is more descriptive and likely aligns with the method's purpose of making something active, which could be an account. This name provides better context and intent.",
         "rules_addressed": [
-          "R1_REVEAL_INTENT",
-          "R6_NO_MENTAL_MAPPING"
+          "R1_REVEAL_INTENT"
         ],
         "blocked": false,
         "blocked_reason": null,
@@ -1861,7 +1988,7 @@
         "suggested_name": "deactivate",
         "symbol_kind": "method",
         "confidence": 0.95,
-        "rationale": "The name 'deactivate' aligns with the consistent use of 'activate/deactivate' terminology, providing clarity and consistency across the codebase.",
+        "rationale": "The name 'deactivate' aligns with the consistent pattern of activate/deactivate used in similar methods, improving clarity and consistency.",
         "rules_addressed": [
           "R7_ONE_WORD_PER_CONCEPT"
         ],
@@ -1870,22 +1997,28 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/util/DataHelper.java",
           "line": 94
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
       "rule_violations": []
     },
     {
-      "is_valid": false,
+      "is_valid": true,
       "suggestion": {
         "original_name": "obj",
-        "suggested_name": "targetObject",
+        "suggested_name": "inactiveReason",
         "symbol_kind": "parameter",
         "confidence": 0.9,
-        "rationale": "The name 'targetObject' provides more context about the parameter's role in the method, aligning with the method's purpose of setting something inactive.",
+        "rationale": "The name 'inactiveReason' provides clarity on what the parameter is used for in the context of the 'setInactive' method.",
         "rules_addressed": [
-          "R1_REVEAL_INTENT",
-          "R6_NO_MENTAL_MAPPING"
+          "R1_REVEAL_INTENT"
         ],
         "blocked": false,
         "blocked_reason": null,
@@ -1923,204 +2056,191 @@
         }
       },
       "blocked_reasons": [],
-      "rule_violations": [
-        {
-          "rule_id": "R1_REVEAL_INTENT",
-          "message": "Contains discouraged token 'object'",
-          "severity": "error"
-        },
-        {
-          "rule_id": "R3_MEANINGFUL_DISTINCTIONS",
-          "message": "Contains discouraged token 'Object'",
-          "severity": "error"
-        }
-      ]
+      "rule_violations": []
     },
     {
-      "is_valid": true,
+      "is_valid": false,
       "suggestion": {
         "original_name": "doEnable",
-        "suggested_name": "enable",
+        "suggested_name": "enableObject",
         "symbol_kind": "method",
         "confidence": 0.95,
-        "rationale": "The name 'enable' is more consistent with the pattern used in 'performDisable' and 'setInactive', and it clearly conveys the action being performed.",
+        "rationale": "The name 'enableObject' clearly indicates the action being performed and aligns with the enable/disable terminology used in the code context.",
         "rules_addressed": [
-          "R1_REVEAL_INTENT",
-          "R7_ONE_WORD_PER_CONCEPT"
-        ],
-        "blocked": false,
-        "blocked_reason": null,
-        "location": {
-          "file": "samples/banking-app/src/main/java/com/bank/util/DataHelper.java",
-          "line": 95
-        }
-      },
-      "blocked_reasons": [],
-      "rule_violations": []
-    },
-    {
-      "is_valid": true,
-      "suggestion": {
-        "original_name": "obj",
-        "suggested_name": "featureToggle",
-        "symbol_kind": "parameter",
-        "confidence": 0.9,
-        "rationale": "The name 'featureToggle' suggests that the parameter is related to enabling a feature, providing clarity on its purpose.",
-        "rules_addressed": [
-          "R1_REVEAL_INTENT",
-          "R6_NO_MENTAL_MAPPING"
-        ],
-        "blocked": false,
-        "blocked_reason": null,
-        "references": [
-          {
-            "file": "samples/banking-app/src/main/java/com/bank/util/DataHelper.java",
-            "line": 75,
-            "column": 16,
-            "code_snippet": "return obj != null;",
-            "usage_type": "read"
-          }
-        ],
-        "reference_count": 1,
-        "location": {
-          "file": "samples/banking-app/src/main/java/com/bank/util/DataHelper.java",
-          "line": 95
-        },
-        "impact_analysis": {
-          "total_references": 1,
-          "affected_file_count": 1,
-          "affected_files": [
-            "samples/banking-app/src/main/java/com/bank/util/DataHelper.java"
-          ],
-          "risk_level": "low",
-          "references_by_file": {
-            "samples/banking-app/src/main/java/com/bank/util/DataHelper.java": [
-              {
-                "line": 75,
-                "column": 16,
-                "code_snippet": "        return obj != null;",
-                "usage_type": "read"
-              }
-            ]
-          }
-        }
-      },
-      "blocked_reasons": [],
-      "rule_violations": []
-    },
-    {
-      "is_valid": false,
-      "suggestion": {
-        "original_name": "performDisable",
-        "suggested_name": "doDisable",
-        "symbol_kind": "method",
-        "confidence": 0.95,
-        "rationale": "The name 'doDisable' aligns with the existing method 'doEnable', maintaining consistency in naming conventions. It also clearly indicates the action being performed.",
-        "rules_addressed": [
-          "R7_ONE_WORD_PER_CONCEPT",
-          "R8_CONTEXT_NAMING"
-        ],
-        "blocked": false,
-        "blocked_reason": null,
-        "location": {
-          "file": "samples/banking-app/src/main/java/com/bank/util/DataHelper.java",
-          "line": 96
-        }
-      },
-      "blocked_reasons": [],
-      "rule_violations": [
-        {
-          "rule_id": "R1_REVEAL_INTENT",
-          "message": "Violates Reveal Intent",
-          "severity": "error"
-        }
-      ]
-    },
-    {
-      "is_valid": false,
-      "suggestion": {
-        "original_name": "obj",
-        "suggested_name": "targetObject",
-        "symbol_kind": "parameter",
-        "confidence": 0.9,
-        "rationale": "The name 'targetObject' provides clarity on what the parameter represents, aligning with the method's purpose of performing a disable action on a specific object.",
-        "rules_addressed": [
-          "R1_REVEAL_INTENT",
-          "R6_NO_MENTAL_MAPPING"
-        ],
-        "blocked": false,
-        "blocked_reason": null,
-        "references": [
-          {
-            "file": "samples/banking-app/src/main/java/com/bank/util/DataHelper.java",
-            "line": 75,
-            "column": 16,
-            "code_snippet": "return obj != null;",
-            "usage_type": "read"
-          }
-        ],
-        "reference_count": 1,
-        "location": {
-          "file": "samples/banking-app/src/main/java/com/bank/util/DataHelper.java",
-          "line": 96
-        },
-        "impact_analysis": {
-          "total_references": 1,
-          "affected_file_count": 1,
-          "affected_files": [
-            "samples/banking-app/src/main/java/com/bank/util/DataHelper.java"
-          ],
-          "risk_level": "low",
-          "references_by_file": {
-            "samples/banking-app/src/main/java/com/bank/util/DataHelper.java": [
-              {
-                "line": 75,
-                "column": 16,
-                "code_snippet": "        return obj != null;",
-                "usage_type": "read"
-              }
-            ]
-          }
-        }
-      },
-      "blocked_reasons": [],
-      "rule_violations": [
-        {
-          "rule_id": "R1_REVEAL_INTENT",
-          "message": "Contains discouraged token 'object'",
-          "severity": "error"
-        },
-        {
-          "rule_id": "R3_MEANINGFUL_DISTINCTIONS",
-          "message": "Contains discouraged token 'Object'",
-          "severity": "error"
-        }
-      ]
-    },
-    {
-      "is_valid": false,
-      "suggestion": {
-        "original_name": "suspendAccount",
-        "suggested_name": "temporarilyDisableAccount",
-        "symbol_kind": "method",
-        "confidence": 0.9,
-        "rationale": "The name 'temporarilyDisableAccount' clearly indicates that the account is being disabled for a temporary period, distinguishing it from 'deactivateAccount'.",
-        "rules_addressed": [
-          "R2_NO_DISINFORMATION",
           "R1_REVEAL_INTENT"
         ],
         "blocked": false,
         "blocked_reason": null,
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/util/DataHelper.java",
-          "line": 102
+          "line": 95
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
       "rule_violations": [
         {
           "rule_id": "R1_REVEAL_INTENT",
-          "message": "Contains discouraged token 'temp'",
+          "message": "Contains discouraged token 'object'",
+          "severity": "error"
+        },
+        {
+          "rule_id": "R3_MEANINGFUL_DISTINCTIONS",
+          "message": "Contains discouraged token 'Object'",
+          "severity": "error"
+        }
+      ]
+    },
+    {
+      "is_valid": false,
+      "suggestion": {
+        "original_name": "obj",
+        "suggested_name": "targetObject",
+        "symbol_kind": "parameter",
+        "confidence": 0.9,
+        "rationale": "The name 'targetObject' provides more context about the parameter's role in the method, indicating it is the object being enabled.",
+        "rules_addressed": [
+          "R1_REVEAL_INTENT"
+        ],
+        "blocked": false,
+        "blocked_reason": null,
+        "references": [
+          {
+            "file": "samples/banking-app/src/main/java/com/bank/util/DataHelper.java",
+            "line": 75,
+            "column": 16,
+            "code_snippet": "return obj != null;",
+            "usage_type": "read"
+          }
+        ],
+        "reference_count": 1,
+        "location": {
+          "file": "samples/banking-app/src/main/java/com/bank/util/DataHelper.java",
+          "line": 95
+        },
+        "impact_analysis": {
+          "total_references": 1,
+          "affected_file_count": 1,
+          "affected_files": [
+            "samples/banking-app/src/main/java/com/bank/util/DataHelper.java"
+          ],
+          "risk_level": "low",
+          "references_by_file": {
+            "samples/banking-app/src/main/java/com/bank/util/DataHelper.java": [
+              {
+                "line": 75,
+                "column": 16,
+                "code_snippet": "        return obj != null;",
+                "usage_type": "read"
+              }
+            ]
+          }
+        }
+      },
+      "blocked_reasons": [],
+      "rule_violations": [
+        {
+          "rule_id": "R1_REVEAL_INTENT",
+          "message": "Contains discouraged token 'object'",
+          "severity": "error"
+        },
+        {
+          "rule_id": "R3_MEANINGFUL_DISTINCTIONS",
+          "message": "Contains discouraged token 'Object'",
+          "severity": "error"
+        }
+      ]
+    },
+    {
+      "is_valid": true,
+      "suggestion": {
+        "original_name": "performDisable",
+        "suggested_name": "disable",
+        "symbol_kind": "method",
+        "confidence": 0.95,
+        "rationale": "The name 'disable' aligns with the concept of enabling/disabling, providing consistency with 'doEnable'.",
+        "rules_addressed": [
+          "R7_ONE_WORD_PER_CONCEPT"
+        ],
+        "blocked": false,
+        "blocked_reason": null,
+        "location": {
+          "file": "samples/banking-app/src/main/java/com/bank/util/DataHelper.java",
+          "line": 96
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
+        }
+      },
+      "blocked_reasons": [],
+      "rule_violations": []
+    },
+    {
+      "is_valid": false,
+      "suggestion": {
+        "original_name": "obj",
+        "suggested_name": "targetObject",
+        "symbol_kind": "parameter",
+        "confidence": 0.9,
+        "rationale": "The name 'targetObject' provides more context about the parameter's role in the method 'performDisable', indicating that it is the object being acted upon.",
+        "rules_addressed": [
+          "R1_REVEAL_INTENT"
+        ],
+        "blocked": false,
+        "blocked_reason": null,
+        "references": [
+          {
+            "file": "samples/banking-app/src/main/java/com/bank/util/DataHelper.java",
+            "line": 75,
+            "column": 16,
+            "code_snippet": "return obj != null;",
+            "usage_type": "read"
+          }
+        ],
+        "reference_count": 1,
+        "location": {
+          "file": "samples/banking-app/src/main/java/com/bank/util/DataHelper.java",
+          "line": 96
+        },
+        "impact_analysis": {
+          "total_references": 1,
+          "affected_file_count": 1,
+          "affected_files": [
+            "samples/banking-app/src/main/java/com/bank/util/DataHelper.java"
+          ],
+          "risk_level": "low",
+          "references_by_file": {
+            "samples/banking-app/src/main/java/com/bank/util/DataHelper.java": [
+              {
+                "line": 75,
+                "column": 16,
+                "code_snippet": "        return obj != null;",
+                "usage_type": "read"
+              }
+            ]
+          }
+        }
+      },
+      "blocked_reasons": [],
+      "rule_violations": [
+        {
+          "rule_id": "R1_REVEAL_INTENT",
+          "message": "Contains discouraged token 'object'",
+          "severity": "error"
+        },
+        {
+          "rule_id": "R3_MEANINGFUL_DISTINCTIONS",
+          "message": "Contains discouraged token 'Object'",
           "severity": "error"
         }
       ]
@@ -2132,7 +2252,7 @@
         "suggested_name": "customerName",
         "symbol_kind": "field",
         "confidence": 0.95,
-        "rationale": "The name 'customerName' is in English and clearly indicates that the field stores the name of a customer, addressing both R9_CORRECT_LANGUAGE and R1_REVEAL_INTENT.",
+        "rationale": "The name 'customerName' is in English and clearly indicates that it represents the name of a customer, addressing both the language and context issues.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R9_CORRECT_LANGUAGE"
@@ -2182,7 +2302,7 @@
         "suggested_name": "lastName",
         "symbol_kind": "field",
         "confidence": 0.95,
-        "rationale": "The name 'lastName' is in English and clearly describes the field's purpose, aligning with the naming conventions of the codebase.",
+        "rationale": "The name 'lastName' is in English and clearly indicates the field's purpose, aligning with Java naming conventions.",
         "rules_addressed": [
           "R9_CORRECT_LANGUAGE"
         ],
@@ -2191,6 +2311,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/model/Customer.java",
           "line": 18
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -2202,8 +2329,8 @@
         "original_name": "direccion",
         "suggested_name": "address",
         "symbol_kind": "field",
-        "confidence": 0.9,
-        "rationale": "The name 'address' is in English and provides a clearer understanding of the field's purpose within the Customer class.",
+        "confidence": 0.95,
+        "rationale": "The name 'address' is in English and clearly indicates that the field stores an address, aligning with Java naming conventions.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R9_CORRECT_LANGUAGE"
@@ -2253,9 +2380,8 @@
         "suggested_name": "customerType",
         "symbol_kind": "field",
         "confidence": 0.95,
-        "rationale": "Removes type encoding and aligns with naming conventions by clearly indicating the field's purpose related to customer type.",
+        "rationale": "The name 'customerType' removes the type encoding prefix 'I' and clearly describes the field's purpose without implying an interface.",
         "rules_addressed": [
-          "R1_REVEAL_INTENT",
           "R5_NO_TYPE_ENCODING"
         ],
         "blocked": false,
@@ -2263,6 +2389,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/model/Customer.java",
           "line": 22
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -2275,9 +2408,8 @@
         "suggested_name": "customerName",
         "symbol_kind": "field",
         "confidence": 0.95,
-        "rationale": "The name 'customerName' is concise and directly conveys the purpose of the field, aligning with R1_REVEAL_INTENT and R3_MEANINGFUL_DISTINCTIONS by removing unnecessary words.",
+        "rationale": "The name 'customerName' is more concise and removes unnecessary semantic noise, aligning with Java naming conventions.",
         "rules_addressed": [
-          "R1_REVEAL_INTENT",
           "R3_MEANINGFUL_DISTINCTIONS"
         ],
         "blocked": false,
@@ -2285,6 +2417,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/model/Customer.java",
           "line": 25
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -2297,7 +2436,7 @@
         "suggested_name": "customerAddress",
         "symbol_kind": "field",
         "confidence": 0.95,
-        "rationale": "The name 'customerAddress' is clear and concise, directly indicating that the field represents an address associated with a customer.",
+        "rationale": "The name 'customerAddress' is more concise and removes the unnecessary article, making it clearer and more meaningful.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R3_MEANINGFUL_DISTINCTIONS"
@@ -2307,19 +2446,26 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/model/Customer.java",
           "line": 26
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
       "rule_violations": []
     },
     {
-      "is_valid": true,
+      "is_valid": false,
       "suggestion": {
         "original_name": "obj",
-        "suggested_name": "customerDetails",
+        "suggested_name": "customerData",
         "symbol_kind": "field",
         "confidence": 0.95,
-        "rationale": "The name 'customerDetails' provides a clear indication of the field's purpose, likely storing information related to the customer.",
+        "rationale": "The name 'customerData' provides a clearer indication of the field's purpose, assuming it holds data related to a customer, thus addressing the intent revelation issue.",
         "rules_addressed": [
           "R1_REVEAL_INTENT"
         ],
@@ -2359,7 +2505,18 @@
         }
       },
       "blocked_reasons": [],
-      "rule_violations": []
+      "rule_violations": [
+        {
+          "rule_id": "R1_REVEAL_INTENT",
+          "message": "Contains discouraged token 'data'",
+          "severity": "error"
+        },
+        {
+          "rule_id": "R3_MEANINGFUL_DISTINCTIONS",
+          "message": "Violates Meaningful Distinctions",
+          "severity": "error"
+        }
+      ]
     },
     {
       "is_valid": true,
@@ -2368,9 +2525,9 @@
         "suggested_name": "customerName",
         "symbol_kind": "field",
         "confidence": 0.95,
-        "rationale": "The name 'customerName' clearly indicates that the field likely holds the name of the customer, which is more descriptive and meaningful within the Customer class.",
+        "rationale": "The name 'customerName' provides clear intent about the field's purpose, likely representing a customer's name, and removes type encoding.",
         "rules_addressed": [
-          "R1_REVEAL_INTENT",
+          "R5_NO_TYPE_ENCODING",
           "R6_NO_MENTAL_MAPPING"
         ],
         "blocked": false,
@@ -2378,6 +2535,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/model/Customer.java",
           "line": 30
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -2389,8 +2553,8 @@
         "original_name": "num",
         "suggested_name": "customerNumber",
         "symbol_kind": "field",
-        "confidence": 0.9,
-        "rationale": "The name 'customerNumber' clearly indicates that the field represents a number associated with the customer, improving clarity and intent.",
+        "confidence": 0.95,
+        "rationale": "The name 'customerNumber' clearly indicates that the field likely represents a unique identifier or number associated with a customer, aligning with the context of the Customer class.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R6_NO_MENTAL_MAPPING"
@@ -2400,6 +2564,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/model/Customer.java",
           "line": 31
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -2412,7 +2583,7 @@
         "suggested_name": "customerProfile",
         "symbol_kind": "field",
         "confidence": 0.95,
-        "rationale": "The name 'customerProfile' is clear, self-explanatory, and easy to pronounce, making it more understandable and aligned with naming conventions.",
+        "rationale": "The name 'customerProfile' is clear, self-explanatory, and easy to pronounce, improving readability and understanding of the code.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R4_PRONOUNCEABLE"
@@ -2422,6 +2593,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/model/Customer.java",
           "line": 34
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -2434,7 +2612,7 @@
         "suggested_name": "transactionHistory",
         "symbol_kind": "field",
         "confidence": 0.95,
-        "rationale": "The name 'transactionHistory' is clear, self-explanatory, and easy to pronounce, revealing the intent of the field as a record of transactions.",
+        "rationale": "The name 'transactionHistory' is more descriptive and easy to understand, clearly indicating that the field stores a history of transactions.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R4_PRONOUNCEABLE"
@@ -2444,77 +2622,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/model/Customer.java",
           "line": 35
-        }
-      },
-      "blocked_reasons": [],
-      "rule_violations": []
-    },
-    {
-      "is_valid": true,
-      "suggestion": {
-        "original_name": "emailAddress",
-        "suggested_name": "customerEmailAddress",
-        "symbol_kind": "field",
-        "confidence": 0.95,
-        "rationale": "The name 'customerEmailAddress' clearly indicates that the email address belongs to a customer, enhancing clarity and intent.",
-        "rules_addressed": [
-          "R1_REVEAL_INTENT",
-          "R8_CONTEXT_NAMING"
-        ],
-        "blocked": false,
-        "blocked_reason": null,
-        "references": [
-          {
-            "file": "samples/banking-app/src/main/java/com/bank/model/Customer.java",
-            "line": 78,
-            "column": 16,
-            "code_snippet": "return emailAddress != null && emailAddress.contains(\"@\");",
-            "usage_type": "read"
-          }
-        ],
-        "reference_count": 1,
-        "location": {
-          "file": "samples/banking-app/src/main/java/com/bank/model/Customer.java",
-          "line": 41
         },
         "impact_analysis": {
-          "total_references": 1,
-          "affected_file_count": 1,
-          "affected_files": [
-            "samples/banking-app/src/main/java/com/bank/model/Customer.java"
-          ],
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
           "risk_level": "low",
-          "references_by_file": {
-            "samples/banking-app/src/main/java/com/bank/model/Customer.java": [
-              {
-                "line": 78,
-                "column": 16,
-                "code_snippet": "        return emailAddress != null && emailAddress.contains(\"@\");",
-                "usage_type": "read"
-              }
-            ]
-          }
-        }
-      },
-      "blocked_reasons": [],
-      "rule_violations": []
-    },
-    {
-      "is_valid": true,
-      "suggestion": {
-        "original_name": "getName",
-        "suggested_name": "fetchName",
-        "symbol_kind": "method",
-        "confidence": 0.9,
-        "rationale": "Renaming to 'fetchName' aligns with the existing 'fetchAddress' method, maintaining consistency in terminology across the class.",
-        "rules_addressed": [
-          "R7_ONE_WORD_PER_CONCEPT"
-        ],
-        "blocked": false,
-        "blocked_reason": null,
-        "location": {
-          "file": "samples/banking-app/src/main/java/com/bank/model/Customer.java",
-          "line": 51
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -2524,10 +2638,10 @@
       "is_valid": true,
       "suggestion": {
         "original_name": "fetchAddress",
-        "suggested_name": "getBillingAddress",
+        "suggested_name": "getAddress",
         "symbol_kind": "method",
         "confidence": 0.9,
-        "rationale": "The name 'getBillingAddress' provides specific context about the type of address being fetched, aligning with the context-aware naming rule and maintaining consistency with typical getter methods.",
+        "rationale": "Using 'getAddress' aligns with common naming conventions for accessor methods and maintains consistency with similar methods, providing clearer intent.",
         "rules_addressed": [
           "R8_CONTEXT_NAMING",
           "R7_ONE_WORD_PER_CONCEPT"
@@ -2537,6 +2651,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/model/Customer.java",
           "line": 55
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -2546,19 +2667,25 @@
       "is_valid": true,
       "suggestion": {
         "original_name": "retrievePhone",
-        "suggested_name": "retrievePhoneNumber",
+        "suggested_name": "getPhoneNumber",
         "symbol_kind": "method",
         "confidence": 0.95,
-        "rationale": "The name 'retrievePhoneNumber' clearly indicates that the method retrieves a phone number, providing better context and intent.",
+        "rationale": "The name 'getPhoneNumber' clearly indicates that the method retrieves a phone number, aligning with Java naming conventions and improving clarity.",
         "rules_addressed": [
-          "R1_REVEAL_INTENT",
-          "R8_CONTEXT_NAMING"
+          "R1_REVEAL_INTENT"
         ],
         "blocked": false,
         "blocked_reason": null,
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/model/Customer.java",
           "line": 59
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -2568,19 +2695,25 @@
       "is_valid": true,
       "suggestion": {
         "original_name": "update",
-        "suggested_name": "updateCustomerDetails",
+        "suggested_name": "updateAccountDetails",
         "symbol_kind": "method",
         "confidence": 0.95,
-        "rationale": "The name 'updateCustomerDetails' clearly indicates the method's purpose, aligning with the context of updating customer-related information.",
+        "rationale": "The name 'updateAccountDetails' provides clear intent by specifying what is being updated, which aligns with the method's purpose.",
         "rules_addressed": [
-          "R1_REVEAL_INTENT",
-          "R8_CONTEXT_NAMING"
+          "R1_REVEAL_INTENT"
         ],
         "blocked": false,
         "blocked_reason": null,
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/model/Customer.java",
           "line": 64
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -2593,7 +2726,7 @@
         "suggested_name": "validateUserInput",
         "symbol_kind": "method",
         "confidence": 0.9,
-        "rationale": "The name 'validateUserInput' clearly indicates that the method is intended to validate user input, providing better context and intent.",
+        "rationale": "The name 'validateUserInput' provides a clearer understanding of what aspect is being validated, aligning with the method's likely purpose.",
         "rules_addressed": [
           "R1_REVEAL_INTENT"
         ],
@@ -2602,6 +2735,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/model/Customer.java",
           "line": 68
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -2614,7 +2754,7 @@
         "suggested_name": "accountDetails",
         "symbol_kind": "field",
         "confidence": 0.95,
-        "rationale": "The name 'accountDetails' provides a clearer understanding of what the field represents, aligning with the context of being a field in an Account class.",
+        "rationale": "The name 'accountDetails' provides a clearer understanding of what the field represents in the context of an Account, addressing the need for intent-revealing names.",
         "rules_addressed": [
           "R1_REVEAL_INTENT"
         ],
@@ -2662,8 +2802,8 @@
         "original_name": "info",
         "suggested_name": "accountDetails",
         "symbol_kind": "field",
-        "confidence": 0.9,
-        "rationale": "The name 'accountDetails' provides a clearer indication of the type of information stored, enhancing the readability and understanding of the code.",
+        "confidence": 0.95,
+        "rationale": "The name 'accountDetails' provides a clearer understanding of what information the field holds, aligning with the context of an Account.",
         "rules_addressed": [
           "R1_REVEAL_INTENT"
         ],
@@ -2672,6 +2812,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/model/Account.java",
           "line": 24
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -2684,10 +2831,9 @@
         "suggested_name": "balance",
         "symbol_kind": "field",
         "confidence": 0.95,
-        "rationale": "The name 'balance' clearly indicates that the field represents the account balance, improving clarity and intent.",
+        "rationale": "The name 'balance' is clear and self-explanatory, indicating that the field represents the account balance.",
         "rules_addressed": [
-          "R1_REVEAL_INTENT",
-          "R6_NO_MENTAL_MAPPING"
+          "R1_REVEAL_INTENT"
         ],
         "blocked": false,
         "blocked_reason": null,
@@ -2773,7 +2919,7 @@
         "suggested_name": "accountType",
         "symbol_kind": "field",
         "confidence": 0.95,
-        "rationale": "The name 'accountType' is concise and removes the unnecessary type encoding, making it more aligned with naming conventions.",
+        "rationale": "The name 'accountType' is clear and concise, removing unnecessary type encoding while still conveying the purpose of the field.",
         "rules_addressed": [
           "R5_NO_TYPE_ENCODING"
         ],
@@ -2782,6 +2928,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/model/Account.java",
           "line": 28
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -2794,16 +2947,22 @@
         "suggested_name": "isActive",
         "symbol_kind": "field",
         "confidence": 0.95,
-        "rationale": "The name 'isActive' is concise and clearly indicates the purpose of the field without unnecessary type encoding. It aligns with common naming conventions for boolean fields.",
+        "rationale": "The name 'isActive' removes the type encoding and clearly indicates that the field is a boolean representing whether the account is active.",
         "rules_addressed": [
-          "R5_NO_TYPE_ENCODING",
-          "R1_REVEAL_INTENT"
+          "R5_NO_TYPE_ENCODING"
         ],
         "blocked": false,
         "blocked_reason": null,
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/model/Account.java",
           "line": 30
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -2813,10 +2972,10 @@
       "is_valid": true,
       "suggestion": {
         "original_name": "x",
-        "suggested_name": "accountBalance",
+        "suggested_name": "balance",
         "symbol_kind": "field",
         "confidence": 0.95,
-        "rationale": "The name 'accountBalance' clearly indicates the purpose of the field within the Account context, addressing the need for intent revelation and eliminating mental mapping.",
+        "rationale": "The name 'balance' provides clear intent and context within an 'Account' class, indicating it likely represents the account balance.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R6_NO_MENTAL_MAPPING"
@@ -2866,16 +3025,22 @@
         "suggested_name": "temporaryBalance",
         "symbol_kind": "field",
         "confidence": 0.95,
-        "rationale": "The name 'temporaryBalance' provides a clear indication of the field's purpose, suggesting it holds a temporary balance value related to the Account.",
+        "rationale": "The name 'temporaryBalance' provides clear intent that the field is used to store a balance temporarily, aligning with the context of an Account.",
         "rules_addressed": [
-          "R1_REVEAL_INTENT",
-          "R6_NO_MENTAL_MAPPING"
+          "R1_REVEAL_INTENT"
         ],
         "blocked": false,
         "blocked_reason": null,
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/model/Account.java",
           "line": 34
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -2894,7 +3059,7 @@
         "suggested_name": "accountDetails",
         "symbol_kind": "field",
         "confidence": 0.9,
-        "rationale": "The name 'accountDetails' provides a clearer indication of the field's purpose, suggesting it contains detailed information about the account, thus addressing the intent and specificity issues.",
+        "rationale": "The name 'accountDetails' provides a clearer indication of the field's purpose, suggesting it contains detailed information about the account.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R3_MEANINGFUL_DISTINCTIONS"
@@ -2904,6 +3069,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/model/Account.java",
           "line": 37
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -2916,46 +3088,27 @@
         "suggested_name": "accountDetails",
         "symbol_kind": "field",
         "confidence": 0.9,
-        "rationale": "The name 'accountDetails' is more specific and suggests that the field contains detailed information about the account, addressing R1_REVEAL_INTENT.",
+        "rationale": "The name 'accountDetails' provides a clearer indication of what the field represents, suggesting it contains detailed information about the account.",
         "rules_addressed": [
-          "R1_REVEAL_INTENT"
+          "R1_REVEAL_INTENT",
+          "R3_MEANINGFUL_DISTINCTIONS"
         ],
         "blocked": false,
         "blocked_reason": null,
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/model/Account.java",
           "line": 38
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
       "rule_violations": []
-    },
-    {
-      "is_valid": false,
-      "suggestion": {
-        "original_name": "process",
-        "suggested_name": "processTransaction",
-        "symbol_kind": "method",
-        "confidence": 0.9,
-        "rationale": "The name 'processTransaction' clarifies the method's purpose, indicating that it processes a transaction, thus revealing its intent.",
-        "rules_addressed": [
-          "R1_REVEAL_INTENT"
-        ],
-        "blocked": false,
-        "blocked_reason": null,
-        "location": {
-          "file": "samples/banking-app/src/main/java/com/bank/model/Account.java",
-          "line": 48
-        }
-      },
-      "blocked_reasons": [],
-      "rule_violations": [
-        {
-          "rule_id": "R1_REVEAL_INTENT",
-          "message": "Violates Reveal Intent",
-          "severity": "error"
-        }
-      ]
     },
     {
       "is_valid": true,
@@ -2964,7 +3117,7 @@
         "suggested_name": "executeTask",
         "symbol_kind": "method",
         "confidence": 0.95,
-        "rationale": "The suggested name 'executeTask' provides a clearer indication of the method's purpose, addressing the need for the name to reveal intent.",
+        "rationale": "The name 'executeTask' provides a clearer indication of the method's purpose, suggesting that it performs a specific task, which aligns with R1_REVEAL_INTENT.",
         "rules_addressed": [
           "R1_REVEAL_INTENT"
         ],
@@ -2973,6 +3126,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/model/Account.java",
           "line": 53
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -2985,7 +3145,7 @@
         "suggested_name": "updateAccountBalance",
         "symbol_kind": "method",
         "confidence": 0.95,
-        "rationale": "The name 'updateAccountBalance' clearly indicates the method's purpose of updating the account balance, making it more understandable and pronounceable.",
+        "rationale": "The name 'updateAccountBalance' is clear, pronounceable, and explicitly describes the method's functionality, addressing both R1_REVEAL_INTENT and R4_PRONOUNCEABLE.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R4_PRONOUNCEABLE"
@@ -2995,6 +3155,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/model/Account.java",
           "line": 58
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -3007,10 +3174,10 @@
         "suggested_name": "amount",
         "symbol_kind": "parameter",
         "confidence": 0.95,
-        "rationale": "The name 'amount' is more descriptive and self-explanatory, making it clear that this parameter represents an amount, likely of money or a similar quantity.",
+        "rationale": "The name 'amount' is clear and self-explanatory, indicating that it represents a monetary value to be used in updating the account balance.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
-          "R4_PRONOUNCEABLE"
+          "R6_NO_MENTAL_MAPPING"
         ],
         "blocked": false,
         "blocked_reason": null,
@@ -3053,92 +3220,11 @@
     {
       "is_valid": true,
       "suggestion": {
-        "original_name": "amount",
-        "suggested_name": "depositAmount",
-        "symbol_kind": "parameter",
-        "confidence": 0.9,
-        "rationale": "The name 'depositAmount' clearly indicates that the parameter represents the amount to be deposited, aligning with the method's purpose.",
-        "rules_addressed": [
-          "R1_REVEAL_INTENT"
-        ],
-        "blocked": false,
-        "blocked_reason": null,
-        "references": [
-          {
-            "file": "samples/banking-app/src/main/java/com/bank/util/DataHelper.java",
-            "line": 80,
-            "column": 39,
-            "code_snippet": "return String.format(\"$%.2f\", amount);",
-            "usage_type": "read"
-          },
-          {
-            "file": "samples/banking-app/src/main/java/com/bank/model/Account.java",
-            "line": 64,
-            "column": 32,
-            "code_snippet": "this.currentBalance += amount;",
-            "usage_type": "write"
-          },
-          {
-            "file": "samples/banking-app/src/main/java/com/bank/service/PaymentController.java",
-            "line": 82,
-            "column": 13,
-            "code_snippet": "if (amount <= 0) {",
-            "usage_type": "read"
-          }
-        ],
-        "reference_count": 3,
-        "location": {
-          "file": "samples/banking-app/src/main/java/com/bank/model/Account.java",
-          "line": 63
-        },
-        "impact_analysis": {
-          "total_references": 3,
-          "affected_file_count": 3,
-          "affected_files": [
-            "samples/banking-app/src/main/java/com/bank/util/DataHelper.java",
-            "samples/banking-app/src/main/java/com/bank/model/Account.java",
-            "samples/banking-app/src/main/java/com/bank/service/PaymentController.java"
-          ],
-          "risk_level": "low",
-          "references_by_file": {
-            "samples/banking-app/src/main/java/com/bank/util/DataHelper.java": [
-              {
-                "line": 80,
-                "column": 39,
-                "code_snippet": "        return String.format(\"$%.2f\", amount);",
-                "usage_type": "read"
-              }
-            ],
-            "samples/banking-app/src/main/java/com/bank/model/Account.java": [
-              {
-                "line": 64,
-                "column": 32,
-                "code_snippet": "        this.currentBalance += amount;",
-                "usage_type": "write"
-              }
-            ],
-            "samples/banking-app/src/main/java/com/bank/service/PaymentController.java": [
-              {
-                "line": 82,
-                "column": 13,
-                "code_snippet": "        if (amount <= 0) {",
-                "usage_type": "read"
-              }
-            ]
-          }
-        }
-      },
-      "blocked_reasons": [],
-      "rule_violations": []
-    },
-    {
-      "is_valid": true,
-      "suggestion": {
         "original_name": "transfer",
         "suggested_name": "transferFunds",
         "symbol_kind": "method",
         "confidence": 0.95,
-        "rationale": "The name 'transferFunds' clearly indicates that the method is responsible for transferring monetary funds, which aligns with the context of the parameters and the likely purpose of the method.",
+        "rationale": "The name 'transferFunds' clearly indicates that the method is responsible for transferring monetary funds, improving clarity and intent.",
         "rules_addressed": [
           "R1_REVEAL_INTENT"
         ],
@@ -3147,6 +3233,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/model/Account.java",
           "line": 68
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -3159,7 +3252,7 @@
         "suggested_name": "amount",
         "symbol_kind": "parameter",
         "confidence": 0.95,
-        "rationale": "The name 'amount' clearly indicates that the parameter likely represents a monetary value involved in the transfer, addressing the need for clarity and intent.",
+        "rationale": "The name 'amount' clearly indicates that the parameter likely represents a monetary value involved in the transfer, which improves readability and understanding.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R6_NO_MENTAL_MAPPING"
@@ -3209,7 +3302,7 @@
         "suggested_name": "balance",
         "symbol_kind": "parameter",
         "confidence": 0.95,
-        "rationale": "The name 'balance' clearly indicates that the parameter is related to a financial balance, aligning with the context of a transfer method.",
+        "rationale": "The name 'balance' is more descriptive and indicates that the parameter likely represents a monetary balance involved in the transfer method.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R6_NO_MENTAL_MAPPING"
@@ -3259,7 +3352,7 @@
         "suggested_name": "setAccountNumber",
         "symbol_kind": "method",
         "confidence": 0.95,
-        "rationale": "The name 'setAccountNumber' clearly indicates the method's purpose of setting an account number, improving readability and understanding.",
+        "rationale": "The name 'setAccountNumber' is clear and self-explanatory, revealing the method's purpose to set the account number. It addresses the issues of abbreviation and pronunciation.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R4_PRONOUNCEABLE"
@@ -3269,6 +3362,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/model/Account.java",
           "line": 83
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -3281,10 +3381,9 @@
         "suggested_name": "accountNumber",
         "symbol_kind": "parameter",
         "confidence": 0.95,
-        "rationale": "The name 'accountNumber' is more descriptive and pronounceable, clearly indicating that it represents a bank account number.",
+        "rationale": "The name 'accountNumber' is more descriptive and self-explanatory, clearly indicating that the parameter represents an account number.",
         "rules_addressed": [
-          "R1_REVEAL_INTENT",
-          "R4_PRONOUNCEABLE"
+          "R1_REVEAL_INTENT"
         ],
         "blocked": false,
         "blocked_reason": null,
@@ -3357,7 +3456,7 @@
         "suggested_name": "getBalance",
         "symbol_kind": "method",
         "confidence": 0.95,
-        "rationale": "The name 'getBalance' is more descriptive and clearly indicates that the method returns the balance, addressing the intent and pronunciation issues.",
+        "rationale": "The name 'getBalance' clearly indicates that the method retrieves the balance, making it more understandable and pronounceable.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R4_PRONOUNCEABLE"
@@ -3367,6 +3466,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/model/Account.java",
           "line": 87
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -3379,16 +3485,22 @@
         "suggested_name": "setBalance",
         "symbol_kind": "method",
         "confidence": 0.95,
-        "rationale": "The name 'setBalance' clearly indicates that the method sets the balance, improving clarity and intent.",
+        "rationale": "The name 'setBalance' clearly indicates that the method is setting a balance value, which improves readability and understanding.",
         "rules_addressed": [
-          "R1_REVEAL_INTENT",
-          "R4_PRONOUNCEABLE"
+          "R1_REVEAL_INTENT"
         ],
         "blocked": false,
         "blocked_reason": null,
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/model/Account.java",
           "line": 91
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -3401,10 +3513,10 @@
         "suggested_name": "balance",
         "symbol_kind": "parameter",
         "confidence": 0.95,
-        "rationale": "The name 'balance' clearly indicates the parameter's purpose, making the code more readable and understandable.",
+        "rationale": "The name 'balance' is more descriptive and clearly indicates that the parameter represents a balance, eliminating the need for mental mapping.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
-          "R4_PRONOUNCEABLE"
+          "R6_NO_MENTAL_MAPPING"
         ],
         "blocked": false,
         "blocked_reason": null,
@@ -3489,10 +3601,9 @@
         "original_name": "accountList",
         "suggested_name": "accounts",
         "symbol_kind": "field",
-        "confidence": 0.95,
-        "rationale": "The name 'accounts' removes the implication of a specific data structure and provides a clearer, more general description of the field's purpose, aligning with the context of TransactionService.",
+        "confidence": 0.9,
+        "rationale": "The name 'accounts' is more descriptive and avoids implying a specific data structure, aligning with R2_NO_DISINFORMATION.",
         "rules_addressed": [
-          "R1_REVEAL_INTENT",
           "R2_NO_DISINFORMATION"
         ],
         "blocked": false,
@@ -3500,19 +3611,26 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/service/TransactionService.java",
           "line": 13
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
       "rule_violations": []
     },
     {
-      "is_valid": false,
+      "is_valid": true,
       "suggestion": {
         "original_name": "transactionMap",
-        "suggested_name": "transactionDetailsMap",
+        "suggested_name": "transactionsById",
         "symbol_kind": "field",
-        "confidence": 0.92,
-        "rationale": "The name 'transactionDetailsMap' provides a clearer indication that the map contains details related to transactions, thus revealing its intent and purpose more effectively.",
+        "confidence": 0.9,
+        "rationale": "The name 'transactionsById' clearly indicates that the map is used to store transactions indexed by their ID, revealing its purpose and usage more explicitly.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R2_NO_DISINFORMATION"
@@ -3522,16 +3640,17 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/service/TransactionService.java",
           "line": 16
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
-      "rule_violations": [
-        {
-          "rule_id": "R2_NO_DISINFORMATION",
-          "message": "Violates Avoid Disinformation",
-          "severity": "error"
-        }
-      ]
+      "rule_violations": []
     },
     {
       "is_valid": false,
@@ -3540,16 +3659,22 @@
         "suggested_name": "transactionHelper",
         "symbol_kind": "field",
         "confidence": 0.9,
-        "rationale": "The name 'transactionHelper' provides more context by indicating that the helper is related to transactions, aligning with the class it resides in.",
+        "rationale": "The name 'transactionHelper' provides more context by indicating that the helper is related to transactions, aligning with the class 'TransactionService'.",
         "rules_addressed": [
-          "R1_REVEAL_INTENT",
-          "R8_CONTEXT_NAMING"
+          "R1_REVEAL_INTENT"
         ],
         "blocked": false,
         "blocked_reason": null,
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/service/TransactionService.java",
           "line": 19
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -3567,17 +3692,23 @@
         "original_name": "manager",
         "suggested_name": "transactionManager",
         "symbol_kind": "field",
-        "confidence": 0.92,
-        "rationale": "The name 'transactionManager' provides a clearer indication of the field's purpose, suggesting it manages transactions within the TransactionService.",
+        "confidence": 0.95,
+        "rationale": "The name 'transactionManager' provides clearer intent by specifying that the manager is related to transactions, aligning with the context of TransactionService.",
         "rules_addressed": [
-          "R1_REVEAL_INTENT",
-          "R8_CONTEXT_NAMING"
+          "R1_REVEAL_INTENT"
         ],
         "blocked": false,
         "blocked_reason": null,
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/service/TransactionService.java",
           "line": 20
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -3593,19 +3724,25 @@
       "is_valid": true,
       "suggestion": {
         "original_name": "handler",
-        "suggested_name": "transactionHandler",
+        "suggested_name": "transactionProcessor",
         "symbol_kind": "field",
         "confidence": 0.9,
-        "rationale": "The name 'transactionHandler' provides clearer intent by specifying that the handler is related to transactions, aligning with the context of TransactionService.",
+        "rationale": "The name 'transactionProcessor' more clearly indicates that this field is responsible for processing transactions, aligning with the purpose of TransactionService.",
         "rules_addressed": [
-          "R1_REVEAL_INTENT",
-          "R8_CONTEXT_NAMING"
+          "R1_REVEAL_INTENT"
         ],
         "blocked": false,
         "blocked_reason": null,
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/service/TransactionService.java",
           "line": 21
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -3618,7 +3755,7 @@
         "suggested_name": "transactionAmount",
         "symbol_kind": "field",
         "confidence": 0.9,
-        "rationale": "The name 'transactionAmount' provides clear intent about the field's purpose, indicating it likely holds a monetary value related to a transaction, addressing R1_REVEAL_INTENT and R3_MEANINGFUL_DISTINCTIONS.",
+        "rationale": "The name 'transactionAmount' is more descriptive and indicates that the field likely holds a monetary value related to a transaction, which aligns with the context of being in a TransactionService.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R3_MEANINGFUL_DISTINCTIONS"
@@ -3628,6 +3765,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/service/TransactionService.java",
           "line": 24
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -3640,7 +3784,7 @@
         "suggested_name": "transactionAmount",
         "symbol_kind": "field",
         "confidence": 0.9,
-        "rationale": "The name 'transactionAmount' clearly indicates that the field represents an amount related to a transaction, addressing both intent and meaningful distinctions.",
+        "rationale": "The name 'transactionAmount' provides clear context and intent, indicating that the field likely represents a monetary value associated with a transaction.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R3_MEANINGFUL_DISTINCTIONS"
@@ -3650,6 +3794,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/service/TransactionService.java",
           "line": 25
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -3662,9 +3813,8 @@
         "suggested_name": "transactionResult",
         "symbol_kind": "field",
         "confidence": 0.9,
-        "rationale": "The name 'transactionResult' clearly indicates that the field holds a result related to a transaction, aligning with the context of TransactionService.",
+        "rationale": "The name 'transactionResult' provides a clear indication that the field is related to the outcome or result of a transaction, aligning with the context of TransactionService.",
         "rules_addressed": [
-          "R1_REVEAL_INTENT",
           "R3_MEANINGFUL_DISTINCTIONS"
         ],
         "blocked": false,
@@ -3672,6 +3822,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/service/TransactionService.java",
           "line": 26
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -3683,8 +3840,8 @@
         "original_name": "result2",
         "suggested_name": "transactionOutcome",
         "symbol_kind": "field",
-        "confidence": 0.9,
-        "rationale": "The name 'transactionOutcome' clearly indicates the field's purpose related to the result of a transaction, addressing the need for intent revelation and meaningful distinction.",
+        "confidence": 0.92,
+        "rationale": "The name 'transactionOutcome' clearly indicates the field's purpose in the context of a TransactionService, providing a meaningful distinction from other potential results.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R3_MEANINGFUL_DISTINCTIONS"
@@ -3694,6 +3851,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/service/TransactionService.java",
           "line": 27
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -3706,9 +3870,8 @@
         "suggested_name": "accountMapByNumber",
         "symbol_kind": "field",
         "confidence": 0.9,
-        "rationale": "The name 'accountMapByNumber' clearly indicates that the field is a map indexed by account numbers, enhancing clarity and intent.",
+        "rationale": "The name 'accountMapByNumber' clearly indicates that this field is a Map, which aligns with the likely usage context in a service class dealing with transactions.",
         "rules_addressed": [
-          "R1_REVEAL_INTENT",
           "R2_NO_DISINFORMATION"
         ],
         "blocked": false,
@@ -3716,6 +3879,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/service/TransactionService.java",
           "line": 30
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -3728,7 +3898,7 @@
         "suggested_name": "processRequest",
         "symbol_kind": "method",
         "confidence": 0.9,
-        "rationale": "The name 'processRequest' suggests that the method is intended to process or handle a specific request, providing more clarity on its purpose.",
+        "rationale": "The name 'processRequest' provides a clearer indication of the method's purpose, suggesting it processes a specific type of request.",
         "rules_addressed": [
           "R1_REVEAL_INTENT"
         ],
@@ -3737,6 +3907,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/service/TransactionService.java",
           "line": 36
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -3752,10 +3929,10 @@
       "is_valid": true,
       "suggestion": {
         "original_name": "o",
-        "suggested_name": "order",
+        "suggested_name": "operation",
         "symbol_kind": "parameter",
         "confidence": 0.9,
-        "rationale": "The name 'order' provides a clear indication of what the parameter represents, enhancing code readability and understanding.",
+        "rationale": "The name 'operation' provides more context about the parameter's purpose, aligning with R1_REVEAL_INTENT.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R6_NO_MENTAL_MAPPING"
@@ -3765,6 +3942,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/service/TransactionService.java",
           "line": 36
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -3774,10 +3958,10 @@
       "is_valid": false,
       "suggestion": {
         "original_name": "get",
-        "suggested_name": "retrieveData",
+        "suggested_name": "getObject",
         "symbol_kind": "method",
-        "confidence": 0.9,
-        "rationale": "The name 'retrieveData' is more descriptive and indicates that the method is intended to fetch some data, aligning with R1_REVEAL_INTENT.",
+        "confidence": 0.85,
+        "rationale": "The name 'getObject' provides more context about the method's purpose, suggesting it retrieves an object, which is more informative than 'get'.",
         "rules_addressed": [
           "R1_REVEAL_INTENT"
         ],
@@ -3786,42 +3970,28 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/service/TransactionService.java",
           "line": 43
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
       "rule_violations": [
         {
           "rule_id": "R1_REVEAL_INTENT",
-          "message": "Contains discouraged token 'data'",
+          "message": "Contains discouraged token 'object'",
           "severity": "error"
         },
         {
           "rule_id": "R3_MEANINGFUL_DISTINCTIONS",
-          "message": "Violates Meaningful Distinctions",
+          "message": "Contains discouraged token 'Object'",
           "severity": "error"
         }
       ]
-    },
-    {
-      "is_valid": true,
-      "suggestion": {
-        "original_name": "calculate",
-        "suggested_name": "calculateAdjustedValue",
-        "symbol_kind": "method",
-        "confidence": 0.9,
-        "rationale": "The name 'calculateAdjustedValue' better describes the operation performed by the method, indicating that it calculates an adjusted value based on input parameters.",
-        "rules_addressed": [
-          "R1_REVEAL_INTENT"
-        ],
-        "blocked": false,
-        "blocked_reason": null,
-        "location": {
-          "file": "samples/banking-app/src/main/java/com/bank/service/TransactionService.java",
-          "line": 50
-        }
-      },
-      "blocked_reasons": [],
-      "rule_violations": []
     },
     {
       "is_valid": true,
@@ -3830,7 +4000,7 @@
         "suggested_name": "amount",
         "symbol_kind": "parameter",
         "confidence": 0.95,
-        "rationale": "The name 'amount' is more descriptive and likely represents a common parameter in a method named 'calculate', addressing the need for clarity and intent.",
+        "rationale": "The name 'amount' provides context and clarity, indicating the parameter's likely role in a calculation.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R6_NO_MENTAL_MAPPING"
@@ -3879,8 +4049,8 @@
         "original_name": "b",
         "suggested_name": "balance",
         "symbol_kind": "parameter",
-        "confidence": 0.9,
-        "rationale": "The name 'balance' likely fits the context of a method named 'calculate', suggesting a financial calculation involving a balance.",
+        "confidence": 0.95,
+        "rationale": "The name 'balance' provides clear context and intent, aligning with the method 'calculate' which likely involves financial calculations.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R6_NO_MENTAL_MAPPING"
@@ -3930,7 +4100,7 @@
         "suggested_name": "calculationInput",
         "symbol_kind": "parameter",
         "confidence": 0.9,
-        "rationale": "The name 'calculationInput' clearly indicates that the parameter is an input for the calculation method, improving clarity and intent.",
+        "rationale": "The name 'calculationInput' provides clarity on the purpose of the parameter, aligning with R1_REVEAL_INTENT by indicating that it is an input for a calculation.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R6_NO_MENTAL_MAPPING"
@@ -3974,62 +4144,13 @@
       "rule_violations": []
     },
     {
-      "is_valid": true,
-      "suggestion": {
-        "original_name": "years",
-        "suggested_name": "investmentDurationYears",
-        "symbol_kind": "parameter",
-        "confidence": 0.9,
-        "rationale": "The name 'investmentDurationYears' provides a clearer understanding of what the parameter represents in the context of calculating compound interest, addressing the need for revealing intent.",
-        "rules_addressed": [
-          "R1_REVEAL_INTENT"
-        ],
-        "blocked": false,
-        "blocked_reason": null,
-        "references": [
-          {
-            "file": "samples/banking-app/src/main/java/com/bank/service/TransactionService.java",
-            "line": 64,
-            "column": 69,
-            "code_snippet": "double accumulated = principal * Math.pow(1 + interestRate, years);",
-            "usage_type": "read"
-          }
-        ],
-        "reference_count": 1,
-        "location": {
-          "file": "samples/banking-app/src/main/java/com/bank/service/TransactionService.java",
-          "line": 63
-        },
-        "impact_analysis": {
-          "total_references": 1,
-          "affected_file_count": 1,
-          "affected_files": [
-            "samples/banking-app/src/main/java/com/bank/service/TransactionService.java"
-          ],
-          "risk_level": "low",
-          "references_by_file": {
-            "samples/banking-app/src/main/java/com/bank/service/TransactionService.java": [
-              {
-                "line": 64,
-                "column": 69,
-                "code_snippet": "        double accumulated = principal * Math.pow(1 + interestRate, years);",
-                "usage_type": "read"
-              }
-            ]
-          }
-        }
-      },
-      "blocked_reasons": [],
-      "rule_violations": []
-    },
-    {
       "is_valid": false,
       "suggestion": {
         "original_name": "prcTxn",
         "suggested_name": "processTransaction",
         "symbol_kind": "method",
         "confidence": 0.95,
-        "rationale": "The name 'processTransaction' clearly indicates the method's purpose, making it more readable and understandable.",
+        "rationale": "The name 'processTransaction' clearly describes the method's purpose, making it more understandable and pronounceable.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R4_PRONOUNCEABLE"
@@ -4039,6 +4160,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/service/TransactionService.java",
           "line": 71
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -4067,6 +4195,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/service/TransactionService.java",
           "line": 71
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -4079,10 +4214,10 @@
         "suggested_name": "amount",
         "symbol_kind": "parameter",
         "confidence": 0.95,
-        "rationale": "The name 'amount' is a full, clear, and pronounceable word that conveys the intended meaning of the parameter, making the code more readable and understandable.",
+        "rationale": "The name 'amount' is more descriptive and self-explanatory, clearly indicating that the parameter represents an amount, likely of money or quantity.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
-          "R4_PRONOUNCEABLE"
+          "R6_NO_MENTAL_MAPPING"
         ],
         "blocked": false,
         "blocked_reason": null,
@@ -4129,7 +4264,7 @@
         "suggested_name": "accountNumber",
         "symbol_kind": "parameter",
         "confidence": 0.95,
-        "rationale": "The name 'accountNumber' is clear, self-explanatory, and easily pronounceable, revealing the intent of the parameter.",
+        "rationale": "The name 'accountNumber' is clear, self-explanatory, and easily pronounceable, which improves code readability and maintainability.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R4_PRONOUNCEABLE"
@@ -4139,87 +4274,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/service/TransactionService.java",
           "line": 71
-        }
-      },
-      "blocked_reasons": [],
-      "rule_violations": []
-    },
-    {
-      "is_valid": true,
-      "suggestion": {
-        "original_name": "amount",
-        "suggested_name": "transactionAmount",
-        "symbol_kind": "parameter",
-        "confidence": 0.95,
-        "rationale": "The name 'transactionAmount' is more descriptive and reveals the intent that it is the amount involved in the transaction process.",
-        "rules_addressed": [
-          "R1_REVEAL_INTENT"
-        ],
-        "blocked": false,
-        "blocked_reason": null,
-        "references": [
-          {
-            "file": "samples/banking-app/src/main/java/com/bank/util/DataHelper.java",
-            "line": 80,
-            "column": 39,
-            "code_snippet": "return String.format(\"$%.2f\", amount);",
-            "usage_type": "read"
-          },
-          {
-            "file": "samples/banking-app/src/main/java/com/bank/model/Account.java",
-            "line": 64,
-            "column": 32,
-            "code_snippet": "this.currentBalance += amount;",
-            "usage_type": "write"
-          },
-          {
-            "file": "samples/banking-app/src/main/java/com/bank/service/PaymentController.java",
-            "line": 82,
-            "column": 13,
-            "code_snippet": "if (amount <= 0) {",
-            "usage_type": "read"
-          }
-        ],
-        "reference_count": 3,
-        "location": {
-          "file": "samples/banking-app/src/main/java/com/bank/service/TransactionService.java",
-          "line": 80
         },
         "impact_analysis": {
-          "total_references": 3,
-          "affected_file_count": 3,
-          "affected_files": [
-            "samples/banking-app/src/main/java/com/bank/util/DataHelper.java",
-            "samples/banking-app/src/main/java/com/bank/model/Account.java",
-            "samples/banking-app/src/main/java/com/bank/service/PaymentController.java"
-          ],
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
           "risk_level": "low",
-          "references_by_file": {
-            "samples/banking-app/src/main/java/com/bank/util/DataHelper.java": [
-              {
-                "line": 80,
-                "column": 39,
-                "code_snippet": "        return String.format(\"$%.2f\", amount);",
-                "usage_type": "read"
-              }
-            ],
-            "samples/banking-app/src/main/java/com/bank/model/Account.java": [
-              {
-                "line": 64,
-                "column": 32,
-                "code_snippet": "        this.currentBalance += amount;",
-                "usage_type": "write"
-              }
-            ],
-            "samples/banking-app/src/main/java/com/bank/service/PaymentController.java": [
-              {
-                "line": 82,
-                "column": 13,
-                "code_snippet": "        if (amount <= 0) {",
-                "usage_type": "read"
-              }
-            ]
-          }
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -4231,17 +4292,24 @@
         "original_name": "getAccountString",
         "suggested_name": "getAccountDetails",
         "symbol_kind": "method",
-        "confidence": 0.9,
-        "rationale": "The name 'getAccountDetails' is more descriptive and avoids type encoding, providing a clearer understanding of what the method returns.",
+        "confidence": 0.95,
+        "rationale": "The name 'getAccountDetails' removes the type encoding and better describes the method's purpose, addressing R5_NO_TYPE_ENCODING and R1_REVEAL_INTENT.",
         "rules_addressed": [
-          "R1_REVEAL_INTENT",
-          "R5_NO_TYPE_ENCODING"
+          "R5_NO_TYPE_ENCODING",
+          "R1_REVEAL_INTENT"
         ],
         "blocked": false,
         "blocked_reason": null,
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/service/TransactionService.java",
           "line": 88
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -4251,12 +4319,11 @@
       "is_valid": true,
       "suggestion": {
         "original_name": "getBalanceInteger",
-        "suggested_name": "getAccountBalance",
+        "suggested_name": "getBalance",
         "symbol_kind": "method",
         "confidence": 0.95,
-        "rationale": "The name 'getAccountBalance' removes the type encoding and provides a clearer indication of what balance is being retrieved, addressing both R5_NO_TYPE_ENCODING and R1_REVEAL_INTENT.",
+        "rationale": "The name 'getBalance' is clear and concise, avoiding type encoding while maintaining the method's purpose.",
         "rules_addressed": [
-          "R1_REVEAL_INTENT",
           "R5_NO_TYPE_ENCODING"
         ],
         "blocked": false,
@@ -4264,6 +4331,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/service/TransactionService.java",
           "line": 92
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -4276,7 +4350,7 @@
         "suggested_name": "isActive",
         "symbol_kind": "method",
         "confidence": 0.95,
-        "rationale": "The name 'isActive' is concise, avoids type encoding, and clearly indicates the method checks or returns the active status.",
+        "rationale": "The name 'isActive' removes type encoding and clearly indicates the method's purpose of checking or returning an active status.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R5_NO_TYPE_ENCODING"
@@ -4286,6 +4360,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/service/TransactionService.java",
           "line": 96
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -4298,7 +4379,7 @@
         "suggested_name": "executeTransaction",
         "symbol_kind": "method",
         "confidence": 0.9,
-        "rationale": "The name 'executeTransaction' provides a clearer understanding of what the method is intended to do, assuming the context is related to transactions.",
+        "rationale": "The name 'executeTransaction' provides a clearer indication of the method's purpose, assuming it is related to processing a transaction in a banking context.",
         "rules_addressed": [
           "R1_REVEAL_INTENT"
         ],
@@ -4307,6 +4388,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/service/TransactionService.java",
           "line": 103
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -4316,10 +4404,10 @@
       "is_valid": true,
       "suggestion": {
         "original_name": "run",
-        "suggested_name": "executeTask",
+        "suggested_name": "executeTransaction",
         "symbol_kind": "method",
-        "confidence": 0.9,
-        "rationale": "The name 'executeTask' provides a clearer indication of the method's purpose, suggesting it executes a specific task or process.",
+        "confidence": 0.92,
+        "rationale": "The name 'executeTransaction' provides clear intent by specifying that the method is executing a transaction, which is more informative and context-aware.",
         "rules_addressed": [
           "R1_REVEAL_INTENT"
         ],
@@ -4328,6 +4416,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/service/TransactionService.java",
           "line": 107
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -4337,10 +4432,10 @@
       "is_valid": true,
       "suggestion": {
         "original_name": "perform",
-        "suggested_name": "performTransaction",
+        "suggested_name": "calculateMonthlyInterest",
         "symbol_kind": "method",
-        "confidence": 0.9,
-        "rationale": "The name 'performTransaction' provides a clearer indication of the method's purpose, assuming it deals with executing a transaction, thus addressing the need for revealing intent.",
+        "confidence": 0.95,
+        "rationale": "The suggested name 'calculateMonthlyInterest' clearly indicates the specific action being performed, aligning with the example provided and improving clarity.",
         "rules_addressed": [
           "R1_REVEAL_INTENT"
         ],
@@ -4349,19 +4444,26 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/service/TransactionService.java",
           "line": 111
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
       "rule_violations": []
     },
     {
-      "is_valid": true,
+      "is_valid": false,
       "suggestion": {
         "original_name": "data",
-        "suggested_name": "customerRecord",
+        "suggested_name": "customerData",
         "symbol_kind": "parameter",
         "confidence": 0.95,
-        "rationale": "The name 'customerRecord' provides a clear understanding of what the data represents, aligning with the method's purpose of creating something related to customers.",
+        "rationale": "The name 'customerData' provides more context about the data being handled, suggesting it relates to customer information, which aligns with the method name 'create'.",
         "rules_addressed": [
           "R1_REVEAL_INTENT"
         ],
@@ -4401,7 +4503,18 @@
         }
       },
       "blocked_reasons": [],
-      "rule_violations": []
+      "rule_violations": [
+        {
+          "rule_id": "R1_REVEAL_INTENT",
+          "message": "Contains discouraged token 'data'",
+          "severity": "error"
+        },
+        {
+          "rule_id": "R3_MEANINGFUL_DISTINCTIONS",
+          "message": "Violates Meaningful Distinctions",
+          "severity": "error"
+        }
+      ]
     },
     {
       "is_valid": false,
@@ -4409,11 +4522,10 @@
         "original_name": "obj",
         "suggested_name": "updateData",
         "symbol_kind": "parameter",
-        "confidence": 0.9,
-        "rationale": "The name 'updateData' provides a clearer understanding of the parameter's role in the method 'upd', suggesting it is data to be updated.",
+        "confidence": 0.95,
+        "rationale": "The name 'updateData' clearly indicates that the parameter is related to the data being updated, which improves the readability and intent of the code.",
         "rules_addressed": [
-          "R1_REVEAL_INTENT",
-          "R6_NO_MENTAL_MAPPING"
+          "R1_REVEAL_INTENT"
         ],
         "blocked": false,
         "blocked_reason": null,
@@ -4471,7 +4583,7 @@
         "suggested_name": "processData",
         "symbol_kind": "method",
         "confidence": 0.95,
-        "rationale": "The name 'processData' clearly indicates that the method is intended to process the given object, improving clarity and intent.",
+        "rationale": "The name 'processData' clearly indicates that the method is intended to process some data, addressing the need for clarity and intent.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R6_NO_MENTAL_MAPPING"
@@ -4481,6 +4593,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/service/PaymentController.java",
           "line": 64
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -4504,16 +4623,23 @@
         "suggested_name": "operation",
         "symbol_kind": "parameter",
         "confidence": 0.9,
-        "rationale": "The name 'operation' provides a clearer understanding of the parameter's purpose, aligning with R1_REVEAL_INTENT.",
+        "rationale": "The name 'operation' provides a clearer understanding of the parameter's purpose, improving readability and maintainability.",
         "rules_addressed": [
-          "R1_REVEAL_INTENT",
-          "R6_NO_MENTAL_MAPPING"
+          "R6_NO_MENTAL_MAPPING",
+          "R1_REVEAL_INTENT"
         ],
         "blocked": false,
         "blocked_reason": null,
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/service/PaymentController.java",
           "line": 64
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -4526,9 +4652,8 @@
         "suggested_name": "formatString",
         "symbol_kind": "method",
         "confidence": 0.95,
-        "rationale": "The name 'formatString' is more descriptive and reveals the intent of the method, addressing R1_REVEAL_INTENT and making it pronounceable.",
+        "rationale": "The name 'formatString' is more descriptive and self-explanatory, addressing the purpose of the method to format a string.",
         "rules_addressed": [
-          "R1_REVEAL_INTENT",
           "R4_PRONOUNCEABLE",
           "R6_NO_MENTAL_MAPPING"
         ],
@@ -4537,6 +4662,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/service/PaymentController.java",
           "line": 68
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -4552,10 +4684,10 @@
       "is_valid": false,
       "suggestion": {
         "original_name": "s",
-        "suggested_name": "formattedString",
+        "suggested_name": "formatString",
         "symbol_kind": "parameter",
-        "confidence": 0.92,
-        "rationale": "The name 'formattedString' clearly indicates that the parameter is expected to be a string that will be formatted, addressing the need for intent revelation.",
+        "confidence": 0.9,
+        "rationale": "The name 'formatString' provides clarity on the expected type and purpose of the parameter, aligning with R1_REVEAL_INTENT by indicating that it is a string used for formatting.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R6_NO_MENTAL_MAPPING"
@@ -4608,10 +4740,10 @@
       "is_valid": false,
       "suggestion": {
         "original_name": "chk",
-        "suggested_name": "isDataNotNull",
+        "suggested_name": "isDataValid",
         "symbol_kind": "method",
         "confidence": 0.95,
-        "rationale": "The name 'isDataNotNull' clearly indicates the method's purpose of checking if the data is not null, addressing both R1_REVEAL_INTENT and R4_PRONOUNCEABLE.",
+        "rationale": "The name 'isDataValid' clearly indicates that the method checks if the data is valid, addressing both the pronounceability issue and revealing the method's intent.",
         "rules_addressed": [
           "R1_REVEAL_INTENT",
           "R4_PRONOUNCEABLE"
@@ -4621,6 +4753,13 @@
         "location": {
           "file": "samples/banking-app/src/main/java/com/bank/service/PaymentController.java",
           "line": 72
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
         }
       },
       "blocked_reasons": [],
@@ -4643,8 +4782,8 @@
         "original_name": "data",
         "suggested_name": "inputData",
         "symbol_kind": "parameter",
-        "confidence": 0.87,
-        "rationale": "The name 'inputData' provides a clearer indication that the parameter is some form of input, aligning with the method's potential purpose.",
+        "confidence": 0.85,
+        "rationale": "The name 'inputData' provides more context about the parameter being input to the method, which is more descriptive than just 'data'.",
         "rules_addressed": [
           "R1_REVEAL_INTENT"
         ],
@@ -4696,115 +4835,6 @@
           "severity": "error"
         }
       ]
-    },
-    {
-      "is_valid": false,
-      "suggestion": {
-        "original_name": "hlpr",
-        "suggested_name": "performHelperOperation",
-        "symbol_kind": "method",
-        "confidence": 0.9,
-        "rationale": "The suggested name 'performHelperOperation' provides a clearer indication of the method's role as a helper function, even though the exact operation is not specified. This aligns with R1_REVEAL_INTENT and R4_PRONOUNCEABLE.",
-        "rules_addressed": [
-          "R1_REVEAL_INTENT",
-          "R4_PRONOUNCEABLE"
-        ],
-        "blocked": false,
-        "blocked_reason": null,
-        "location": {
-          "file": "samples/banking-app/src/main/java/com/bank/service/PaymentController.java",
-          "line": 76
-        }
-      },
-      "blocked_reasons": [],
-      "rule_violations": [
-        {
-          "rule_id": "R1_REVEAL_INTENT",
-          "message": "Contains discouraged token 'helper'",
-          "severity": "error"
-        }
-      ]
-    },
-    {
-      "is_valid": true,
-      "suggestion": {
-        "original_name": "amount",
-        "suggested_name": "paymentAmount",
-        "symbol_kind": "parameter",
-        "confidence": 0.95,
-        "rationale": "The name 'paymentAmount' clearly indicates that the parameter represents the amount related to a payment, aligning with the method's purpose and improving clarity.",
-        "rules_addressed": [
-          "R1_REVEAL_INTENT"
-        ],
-        "blocked": false,
-        "blocked_reason": null,
-        "references": [
-          {
-            "file": "samples/banking-app/src/main/java/com/bank/util/DataHelper.java",
-            "line": 80,
-            "column": 39,
-            "code_snippet": "return String.format(\"$%.2f\", amount);",
-            "usage_type": "read"
-          },
-          {
-            "file": "samples/banking-app/src/main/java/com/bank/model/Account.java",
-            "line": 64,
-            "column": 32,
-            "code_snippet": "this.currentBalance += amount;",
-            "usage_type": "write"
-          },
-          {
-            "file": "samples/banking-app/src/main/java/com/bank/service/PaymentController.java",
-            "line": 82,
-            "column": 13,
-            "code_snippet": "if (amount <= 0) {",
-            "usage_type": "read"
-          }
-        ],
-        "reference_count": 3,
-        "location": {
-          "file": "samples/banking-app/src/main/java/com/bank/service/PaymentController.java",
-          "line": 81
-        },
-        "impact_analysis": {
-          "total_references": 3,
-          "affected_file_count": 3,
-          "affected_files": [
-            "samples/banking-app/src/main/java/com/bank/util/DataHelper.java",
-            "samples/banking-app/src/main/java/com/bank/model/Account.java",
-            "samples/banking-app/src/main/java/com/bank/service/PaymentController.java"
-          ],
-          "risk_level": "low",
-          "references_by_file": {
-            "samples/banking-app/src/main/java/com/bank/util/DataHelper.java": [
-              {
-                "line": 80,
-                "column": 39,
-                "code_snippet": "        return String.format(\"$%.2f\", amount);",
-                "usage_type": "read"
-              }
-            ],
-            "samples/banking-app/src/main/java/com/bank/model/Account.java": [
-              {
-                "line": 64,
-                "column": 32,
-                "code_snippet": "        this.currentBalance += amount;",
-                "usage_type": "write"
-              }
-            ],
-            "samples/banking-app/src/main/java/com/bank/service/PaymentController.java": [
-              {
-                "line": 82,
-                "column": 13,
-                "code_snippet": "        if (amount <= 0) {",
-                "usage_type": "read"
-              }
-            ]
-          }
-        }
-      },
-      "blocked_reasons": [],
-      "rule_violations": []
     }
   ],
   "blocked_symbols": [],
@@ -5411,9 +5441,9 @@
       },
       "annotations": [],
       "modifiers": [
-        "public",
+        "final",
         "static",
-        "final"
+        "public"
       ],
       "parent_class": "DataHelper",
       "package": "com.bank.util",
@@ -5429,9 +5459,9 @@
       },
       "annotations": [],
       "modifiers": [
-        "public",
+        "final",
         "static",
-        "final"
+        "public"
       ],
       "parent_class": "DataHelper",
       "package": "com.bank.util",
@@ -5447,9 +5477,9 @@
       },
       "annotations": [],
       "modifiers": [
-        "public",
+        "final",
         "static",
-        "final"
+        "public"
       ],
       "parent_class": "DataHelper",
       "package": "com.bank.util",
@@ -5465,9 +5495,9 @@
       },
       "annotations": [],
       "modifiers": [
-        "public",
+        "final",
         "static",
-        "final"
+        "public"
       ],
       "parent_class": "DataHelper",
       "package": "com.bank.util",
@@ -5483,9 +5513,9 @@
       },
       "annotations": [],
       "modifiers": [
-        "public",
+        "final",
         "static",
-        "final"
+        "public"
       ],
       "parent_class": "DataHelper",
       "package": "com.bank.util",
@@ -5501,9 +5531,9 @@
       },
       "annotations": [],
       "modifiers": [
-        "public",
+        "final",
         "static",
-        "final"
+        "public"
       ],
       "parent_class": "DataHelper",
       "package": "com.bank.util",
@@ -5647,8 +5677,8 @@
       },
       "annotations": [],
       "modifiers": [
-        "public",
-        "static"
+        "static",
+        "public"
       ],
       "parent_class": "DataHelper",
       "package": "com.bank.util",
@@ -5664,8 +5694,8 @@
       },
       "annotations": [],
       "modifiers": [
-        "public",
-        "static"
+        "static",
+        "public"
       ],
       "parent_class": "DataHelper",
       "package": "com.bank.util",
@@ -5695,8 +5725,8 @@
       },
       "annotations": [],
       "modifiers": [
-        "public",
-        "static"
+        "static",
+        "public"
       ],
       "parent_class": "DataHelper",
       "package": "com.bank.util",
@@ -5726,8 +5756,8 @@
       },
       "annotations": [],
       "modifiers": [
-        "public",
-        "static"
+        "static",
+        "public"
       ],
       "parent_class": "DataHelper",
       "package": "com.bank.util",
@@ -5757,8 +5787,8 @@
       },
       "annotations": [],
       "modifiers": [
-        "public",
-        "static"
+        "static",
+        "public"
       ],
       "parent_class": "DataHelper",
       "package": "com.bank.util",
@@ -5788,8 +5818,8 @@
       },
       "annotations": [],
       "modifiers": [
-        "public",
-        "static"
+        "static",
+        "public"
       ],
       "parent_class": "DataHelper",
       "package": "com.bank.util",
@@ -5819,8 +5849,8 @@
       },
       "annotations": [],
       "modifiers": [
-        "public",
-        "static"
+        "static",
+        "public"
       ],
       "parent_class": "DataHelper",
       "package": "com.bank.util",
@@ -5850,8 +5880,8 @@
       },
       "annotations": [],
       "modifiers": [
-        "public",
-        "static"
+        "static",
+        "public"
       ],
       "parent_class": "DataHelper",
       "package": "com.bank.util",
@@ -5881,8 +5911,8 @@
       },
       "annotations": [],
       "modifiers": [
-        "public",
-        "static"
+        "static",
+        "public"
       ],
       "parent_class": "DataHelper",
       "package": "com.bank.util",
@@ -5912,8 +5942,8 @@
       },
       "annotations": [],
       "modifiers": [
-        "public",
-        "static"
+        "static",
+        "public"
       ],
       "parent_class": "DataHelper",
       "package": "com.bank.util",
@@ -5943,8 +5973,8 @@
       },
       "annotations": [],
       "modifiers": [
-        "public",
-        "static"
+        "static",
+        "public"
       ],
       "parent_class": "DataHelper",
       "package": "com.bank.util",
@@ -5974,8 +6004,8 @@
       },
       "annotations": [],
       "modifiers": [
-        "public",
-        "static"
+        "static",
+        "public"
       ],
       "parent_class": "DataHelper",
       "package": "com.bank.util",
@@ -6005,8 +6035,8 @@
       },
       "annotations": [],
       "modifiers": [
-        "public",
-        "static"
+        "static",
+        "public"
       ],
       "parent_class": "DataHelper",
       "package": "com.bank.util",
@@ -6036,8 +6066,8 @@
       },
       "annotations": [],
       "modifiers": [
-        "public",
-        "static"
+        "static",
+        "public"
       ],
       "parent_class": "DataHelper",
       "package": "com.bank.util",
@@ -6067,8 +6097,8 @@
       },
       "annotations": [],
       "modifiers": [
-        "public",
-        "static"
+        "static",
+        "public"
       ],
       "parent_class": "DataHelper",
       "package": "com.bank.util",
@@ -6098,8 +6128,8 @@
       },
       "annotations": [],
       "modifiers": [
-        "public",
-        "static"
+        "static",
+        "public"
       ],
       "parent_class": "DataHelper",
       "package": "com.bank.util",
@@ -6129,8 +6159,8 @@
       },
       "annotations": [],
       "modifiers": [
-        "public",
-        "static"
+        "static",
+        "public"
       ],
       "parent_class": "DataHelper",
       "package": "com.bank.util",
@@ -6160,8 +6190,8 @@
       },
       "annotations": [],
       "modifiers": [
-        "public",
-        "static"
+        "static",
+        "public"
       ],
       "parent_class": "DataHelper",
       "package": "com.bank.util",
@@ -6191,8 +6221,8 @@
       },
       "annotations": [],
       "modifiers": [
-        "public",
-        "static"
+        "static",
+        "public"
       ],
       "parent_class": "DataHelper",
       "package": "com.bank.util",
@@ -6222,8 +6252,8 @@
       },
       "annotations": [],
       "modifiers": [
-        "public",
-        "static"
+        "static",
+        "public"
       ],
       "parent_class": "DataHelper",
       "package": "com.bank.util",

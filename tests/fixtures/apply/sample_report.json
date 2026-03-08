@@ -1,0 +1,138 @@
+{
+  "metadata": {
+    "project_path": ".",
+    "generated_at": "2026-01-23T10:10:58.013536",
+    "llm_model": "gpt-4o",
+    "named_version": "0.1.0"
+  },
+  "summary": {
+    "total_symbols_analyzed": 5,
+    "suggestions_generated": 3,
+    "valid_suggestions": 3,
+    "blocked_suggestions": 0,
+    "average_confidence": 0.93
+  },
+  "suggestions": [
+    {
+      "is_valid": true,
+      "suggestion": {
+        "original_name": "findAll",
+        "suggested_name": "findAllAccounts",
+        "symbol_kind": "method",
+        "confidence": 0.95,
+        "rationale": "The name 'findAllAccounts' clearly indicates the method retrieves all Account objects.",
+        "rules_addressed": ["R1_REVEAL_INTENT"],
+        "blocked": false,
+        "blocked_reason": null,
+        "references": [
+          {
+            "file": "SampleReference.java",
+            "line": 9,
+            "column": 29,
+            "code_snippet": "        var accounts = repo.findAll();",
+            "usage_type": "call"
+          }
+        ],
+        "reference_count": 1,
+        "location": {
+          "file": "SampleTarget.java",
+          "line": 6
+        },
+        "impact_analysis": {
+          "total_references": 1,
+          "affected_file_count": 1,
+          "affected_files": ["SampleReference.java"],
+          "risk_level": "low",
+          "references_by_file": {}
+        }
+      },
+      "blocked_reasons": [],
+      "rule_violations": []
+    },
+    {
+      "is_valid": true,
+      "suggestion": {
+        "original_name": "save",
+        "suggested_name": "saveAccount",
+        "symbol_kind": "method",
+        "confidence": 0.90,
+        "rationale": "The name 'saveAccount' clearly indicates the method saves an Account object.",
+        "rules_addressed": ["R1_REVEAL_INTENT"],
+        "blocked": false,
+        "blocked_reason": null,
+        "references": [
+          {
+            "file": "SampleReference.java",
+            "line": 12,
+            "column": 18,
+            "code_snippet": "            repo.save(a);",
+            "usage_type": "call"
+          }
+        ],
+        "reference_count": 1,
+        "location": {
+          "file": "SampleTarget.java",
+          "line": 7
+        },
+        "impact_analysis": {
+          "total_references": 1,
+          "affected_file_count": 1,
+          "affected_files": ["SampleReference.java"],
+          "risk_level": "low",
+          "references_by_file": {}
+        }
+      },
+      "blocked_reasons": [],
+      "rule_violations": []
+    },
+    {
+      "is_valid": true,
+      "suggestion": {
+        "original_name": "x",
+        "suggested_name": "balance",
+        "symbol_kind": "variable",
+        "confidence": 0.92,
+        "rationale": "The name 'balance' reveals the intent of storing account balance.",
+        "rules_addressed": ["R1_REVEAL_INTENT", "R6_NO_MENTAL_MAPPING"],
+        "blocked": false,
+        "blocked_reason": null,
+        "references": [],
+        "reference_count": 0,
+        "location": {
+          "file": "SampleReference.java",
+          "line": 11
+        },
+        "impact_analysis": {
+          "total_references": 0,
+          "affected_file_count": 0,
+          "affected_files": [],
+          "risk_level": "low",
+          "references_by_file": {}
+        }
+      },
+      "blocked_reasons": [],
+      "rule_violations": []
+    },
+    {
+      "is_valid": false,
+      "suggestion": {
+        "original_name": "delete",
+        "suggested_name": "deleteAccount",
+        "symbol_kind": "method",
+        "confidence": 0.70,
+        "rationale": "Low confidence suggestion.",
+        "rules_addressed": ["R1_REVEAL_INTENT"],
+        "blocked": false,
+        "blocked_reason": null,
+        "references": [],
+        "reference_count": 0,
+        "location": {
+          "file": "SampleTarget.java",
+          "line": 8
+        }
+      },
+      "blocked_reasons": [],
+      "rule_violations": [{"rule_id": "R1", "message": "Low confidence", "severity": "warning"}]
+    }
+  ]
+}

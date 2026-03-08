@@ -6,10 +6,12 @@ import java.util.Optional;
 
 /**
  * Repository interface demonstrating naming conventions.
+ * Standard CRUD methods (findById, findAll, save, delete) are well-named
+ * and should NOT be renamed. The other methods demonstrate naming violations.
  */
 public interface AccountRepository {
 
-    // Good: Standard repository method names
+    // Standard repository methods (good names, no rename needed)
     Optional<Account> findById(Long id);
     List<Account> findAll();
     Account save(Account account);
@@ -23,11 +25,10 @@ public interface AccountRepository {
     Account getByAccountNumber(String accountNumber);
     Account fetchByCustomerId(Long customerId);
     Account retrieveByEmail(String email);
-    Account findByPhoneNumber(String phoneNumber);
     // Should all use the same prefix (preferably 'find')
 
     // R2: Misleading return type in name
-    // Method says "List" but might return something else
+    // Method says "List" but returns single Account
     Account findAccountList(String criteria);
 
     // R4: Abbreviated parameter names
@@ -46,8 +47,5 @@ public interface AccountRepository {
     String getAccountNumberString(Long accountId);
     Long getBalanceLong(String accountNumber);
 
-    // Good examples
-    List<Account> findByStatus(String status);
-    List<Account> findByBalanceGreaterThan(Double minimumBalance);
     Optional<Account> findByAccountNumberAndStatus(String accountNumber, String status);
 }

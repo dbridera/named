@@ -26,10 +26,6 @@ public class TransactionService {
     private String result1;
     private String result2;
 
-    // Good names
-    private Map<String, Account> accountsByNumber;
-    private List<String> transactionIds;
-
     /**
      * R1: What does this method do? Name doesn't tell us.
      */
@@ -55,31 +51,10 @@ public class TransactionService {
     }
 
     /**
-     * Better version with meaningful names
-     */
-    public double calculateCompoundInterest(
-            double principal,
-            double interestRate,
-            double years) {
-        double accumulated = principal * Math.pow(1 + interestRate, years);
-        return accumulated - principal;
-    }
-
-    /**
      * R4: Unpronounceable abbreviations
      */
     public void prcTxn(String txnId, double amt, String acctNbr) {
         // Process transaction - but the name is cryptic
-    }
-
-    /**
-     * Good: Pronounceable and clear
-     */
-    public void processTransaction(
-            String transactionId,
-            double amount,
-            String accountNumber) {
-        // Clear what this does
     }
 
     /**
@@ -110,20 +85,5 @@ public class TransactionService {
 
     public void perform() {
         // Perform what action?
-    }
-
-    /**
-     * Good: Context-aware naming
-     */
-    public void executeMonthlyInterestCalculation() {
-        // Clear intent
-    }
-
-    public void runFraudDetectionCheck() {
-        // Specific purpose
-    }
-
-    public void performBalanceReconciliation() {
-        // Descriptive action
     }
 }

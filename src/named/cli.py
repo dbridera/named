@@ -206,24 +206,34 @@ def analyze(
         )
         return
 
-    # Analyze with LLM (streaming mode)
+    # Analyze with LLM (per-file batching: one call per file)
     results = []
 
     try:
         from rich.progress import BarColumn, TaskProgressColumn, TimeRemainingColumn
 
+        from named.analysis.impact_analyzer import compute_rename_impact
+        from named.analysis.reference_finder import find_references
+        from named.prompts import get_rules_context
+        from named.rules.guardrails import GUARDRAILS
+        from named.rules.naming_rules import NAMING_RULES
         from named.suggestions.llm_client import LLMClient, LLMError
         from named.validation.validator import validate_suggestion
 
         client = LLMClient(model=model, verbose=verbose)
 
-        # Group symbols by file for better progress display
+        # Pre-render rules context once — reused for every file
+        rules_context = get_rules_context(NAMING_RULES, GUARDRAILS, include_schema=False)
+
+        # Group symbols by file
         symbols_by_file: dict[Path, list] = {}
         for symbol in analyzable:
             file_path = symbol.location.file
             if file_path not in symbols_by_file:
                 symbols_by_file[file_path] = []
             symbols_by_file[file_path].append(symbol)
+
+        total_files = len(symbols_by_file)
 
         with Progress(
             SpinnerColumn(),
@@ -235,77 +245,84 @@ def analyze(
         ) as progress:
             task = progress.add_task(
                 f"Analyzing with {model}...",
-                total=len(analyzable),
+                total=total_files,
             )
 
-            symbol_count = 0
-            for file_path, file_symbols in symbols_by_file.items():
-                # Show current file being analyzed
+            for file_idx, (file_path, file_symbols) in enumerate(symbols_by_file.items()):
                 file_name = file_path.name
+                progress.update(
+                    task,
+                    description=f"[cyan]{file_name}[/cyan] ({len(file_symbols)} symbols)",
+                )
 
-                for symbol in file_symbols:
-                    symbol_count += 1
-
-                    # Update progress with current file and symbol
-                    progress.update(
-                        task,
-                        description=f"[cyan]{file_name}[/cyan]: {symbol.kind} [bold]{symbol.name}[/bold]",
+                if verbose:
+                    console.print(
+                        f"\n[dim]File {file_idx + 1}/{total_files}: {file_name} "
+                        f"({len(file_symbols)} symbols)[/dim]"
                     )
+
+                # One API call for the entire file
+                suggestions = client.analyze_file(
+                    file_path=file_path,
+                    symbols=file_symbols,
+                    rules_context=rules_context,
+                )
+
+                # Process returned suggestions (parallel list to file_symbols)
+                for symbol, suggestion in zip(file_symbols, suggestions):
+                    if suggestion is None:
+                        continue
+
+                    # Find references for symbols that need renaming
+                    refs = find_references(
+                        symbol_name=symbol.name,
+                        symbol_kind=symbol.kind,
+                        java_files=java_files,
+                        parent_class=symbol.parent_class,
+                    )
+                    suggestion.references = refs
+                    suggestion.location = {
+                        "file": str(symbol.location.file),
+                        "line": symbol.location.line,
+                    }
+                    suggestion.impact_analysis = compute_rename_impact(refs)
+
+                    result = validate_suggestion(suggestion, symbol.annotations)
+                    results.append(result)
 
                     if verbose:
                         console.print(
-                            f"\n[dim]Analyzing {symbol_count}/{len(analyzable)}: {file_name}:{symbol.name} ({symbol.kind})[/dim]"
+                            f"  [green]→[/green] {symbol.name} → {suggestion.suggested_name} "
+                            f"({suggestion.confidence:.0%}) [dim]({len(refs)} refs)[/dim]"
                         )
 
-                    try:
-                        suggestion = client.analyze_symbol(
-                            symbol_name=symbol.name,
-                            symbol_kind=symbol.kind,
-                            annotations=symbol.annotations,
-                            context=symbol.context,
-                        )
-
-                        if suggestion:
-                            # Find references for this symbol
-                            from named.analysis.reference_finder import find_references
-
-                            refs = find_references(
-                                symbol_name=symbol.name,
-                                symbol_kind=symbol.kind,
-                                java_files=java_files,
-                                parent_class=symbol.parent_class,
-                            )
-                            suggestion.references = refs
-                            suggestion.location = {
-                                "file": str(symbol.location.file),
-                                "line": symbol.location.line,
-                            }
-
-                            # Compute impact analysis (always, even for zero references)
-                            from named.analysis.impact_analyzer import compute_rename_impact
-
-                            suggestion.impact_analysis = compute_rename_impact(refs)
-
-                            result = validate_suggestion(suggestion, symbol.annotations)
-                            results.append(result)
-
-                            if verbose and suggestion.suggested_name:
-                                ref_count = len(refs)
-                                console.print(
-                                    f"  [green]→ Suggestion:[/green] {symbol.name} → {suggestion.suggested_name} ({suggestion.confidence:.0%}) [dim]({ref_count} refs)[/dim]"
-                                )
-
-                    except LLMError as e:
-                        console.print(
-                            f"\n[yellow]Warning:[/yellow] Failed to analyze {symbol.name}: {e}"
-                        )
-
-                    progress.advance(task)
+                progress.advance(task)
 
     except LLMError as e:
         console.print(f"\n[red]Error:[/red] LLM client error: {e}")
         console.print("\nMake sure NAMED_OPENAI_API_KEY environment variable is set.")
         raise typer.Exit(1)
+
+    # Post-validation: detect cross-suggestion naming conflicts
+    from named.validation.validator import (
+        detect_getter_setter_mismatches,
+        detect_override_conflicts,
+        detect_scope_conflicts,
+        detect_shadow_collisions,
+    )
+
+    pre_valid = sum(1 for r in results if r.is_valid)
+    results = detect_scope_conflicts(results, all_symbols)
+    results = detect_override_conflicts(results, all_symbols)
+    results = detect_shadow_collisions(results, all_symbols)
+    results = detect_getter_setter_mismatches(results, all_symbols)
+    post_valid = sum(1 for r in results if r.is_valid)
+    conflicts_found = pre_valid - post_valid
+    if conflicts_found > 0:
+        console.print(
+            f"\n[yellow]Warning:[/yellow] Blocked {conflicts_found} suggestion(s) "
+            f"due to naming conflicts (duplicate targets, overrides, or shadow collisions)"
+        )
 
     # Generate reports
     console.print("\n[bold]Generating reports...[/bold]")
@@ -923,6 +940,22 @@ def batch_retrieve(
     for job_data in jobs_data:
         all_symbols.extend(job_data.get("symbols", []))
 
+    # Post-validation: detect cross-suggestion naming conflicts
+    # In batch path, all_symbols is a list of dicts, not Symbol objects.
+    # detect_scope_conflicts handles Symbol objects, so we pass None here
+    # and rely on G5a (duplicate targets) only.
+    from named.validation.validator import detect_scope_conflicts
+
+    pre_valid = sum(1 for r in all_results if r.is_valid)
+    all_results = detect_scope_conflicts(all_results, all_symbols=None)
+    post_valid = sum(1 for r in all_results if r.is_valid)
+    conflicts_found = pre_valid - post_valid
+    if conflicts_found > 0:
+        console.print(
+            f"\n[yellow]Warning:[/yellow] Blocked {conflicts_found} suggestion(s) "
+            f"due to naming conflicts (duplicate targets)"
+        )
+
     # Get project path from first symbol
     project_path = Path(all_symbols[0]["file"]).parent if all_symbols else Path(".")
 
@@ -1141,6 +1174,236 @@ def _handle_batch_mode(
     console.print(f"  [cyan]named batch-status --batch-jobs {jobs_file}[/cyan]")
     console.print(f"\nTo retrieve results when completed (~24 hours), run:")
     console.print(f"  [cyan]named batch-retrieve --batch-jobs {jobs_file} --output {output}[/cyan]\n")
+
+
+@app.command()
+def apply(
+    report: Path = typer.Argument(
+        ...,
+        help="Path to Named report JSON file.",
+        exists=True,
+    ),
+    project_root: Optional[Path] = typer.Option(
+        None,
+        "--project-root",
+        "-p",
+        help="Root directory of the Java project (for resolving relative paths).",
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        help="Preview changes without modifying files.",
+    ),
+    min_confidence: float = typer.Option(
+        0.80,
+        "--min-confidence",
+        "-c",
+        help="Minimum confidence threshold (0.0-1.0).",
+    ),
+    backup: bool = typer.Option(
+        True,
+        "--backup/--no-backup",
+        help="Create backup of files before modification.",
+    ),
+    verify: bool = typer.Option(
+        False,
+        "--verify",
+        help="Run compilation check after applying renames.",
+    ),
+    output_dir: Optional[Path] = typer.Option(
+        None,
+        "--output-dir",
+        "-o",
+        help="Copy project here and apply renames to the copy (originals stay untouched).",
+    ),
+    verbose: bool = typer.Option(
+        False,
+        "--verbose",
+        "-v",
+        help="Show detailed output for each rename.",
+    ),
+):
+    """Apply naming suggestions from a report to Java source files.
+
+    Reads a Named report JSON and renames symbols at their declaration
+    and all reference locations.
+
+    Examples:
+        named apply ./named-report/report.json
+        named apply ./report.json --dry-run
+        named apply ./report.json --min-confidence 0.90 --project-root ./my-project
+        named apply ./report.json --no-backup --verify
+    """
+    from named.apply.rename_engine import apply_renames, get_file_diff
+    from named.apply.report_loader import extract_replacement_sites, load_report
+    from named.apply.models import FileChange
+
+    console.print("\n[bold blue]Named[/bold blue] - Apply Suggestions\n")
+
+    # Load report
+    try:
+        report_data = load_report(report)
+    except (ValueError, Exception) as e:
+        console.print(f"[red]Error:[/red] Failed to load report: {e}")
+        raise typer.Exit(1)
+
+    metadata = report_data.get("metadata", {})
+    suggestions = report_data.get("suggestions", [])
+    console.print(f"Report: {report}")
+    console.print(f"  Model: {metadata.get('llm_model', 'unknown')}")
+    console.print(f"  Generated: {metadata.get('generated_at', 'unknown')}")
+    console.print(f"  Total suggestions: {len(suggestions)}")
+
+    # Extract replacement sites
+    resolved_root = project_root or Path(metadata.get("project_path", "."))
+    sites = extract_replacement_sites(
+        report_data,
+        project_root=resolved_root,
+        min_confidence=min_confidence,
+    )
+
+    if not sites:
+        console.print(
+            f"\n[yellow]No applicable suggestions found "
+            f"(confidence >= {min_confidence:.0%}).[/yellow]"
+        )
+        raise typer.Exit(0)
+
+    # Group by file for summary
+    from collections import defaultdict
+
+    files_affected: dict[Path, int] = defaultdict(int)
+    for site in sites:
+        files_affected[site.file] += 1
+
+    declarations = sum(1 for s in sites if s.site_type == "declaration")
+    references = sum(1 for s in sites if s.site_type == "reference")
+
+    console.print(f"\n[bold]Apply Plan:[/bold]")
+    console.print(f"  Replacements: {len(sites)} ({declarations} declarations, {references} references)")
+    console.print(f"  Files affected: {len(files_affected)}")
+    console.print(f"  Confidence threshold: {min_confidence:.0%}")
+
+    if verbose:
+        console.print(f"\n  Files:")
+        for file_path, count in sorted(files_affected.items()):
+            console.print(f"    {file_path.name}: {count} replacements")
+
+    # Dry run mode - show preview
+    if dry_run:
+        console.print("\n[yellow]Dry run mode:[/yellow] Previewing changes...\n")
+        result = apply_renames(sites, dry_run=True, backup=False)
+
+        # Show diffs
+        from collections import defaultdict as dd
+
+        sites_by_file = dd(list)
+        for site in sites:
+            sites_by_file[site.file].append(site)
+
+        for file_path, file_sites in sites_by_file.items():
+            if not file_path.exists():
+                console.print(f"[red]  File not found: {file_path}[/red]")
+                continue
+
+            content = file_path.read_text(encoding="utf-8")
+            change = FileChange(file=file_path, original_content=content)
+
+            # Simulate the changes
+            from named.apply.rename_engine import _process_file
+
+            temp_result = type(result)()
+            processed = _process_file(file_path, file_sites, temp_result)
+
+            if processed and processed.modified_content:
+                diff = get_file_diff(processed)
+                if diff:
+                    console.print(f"[bold cyan]{file_path}[/bold cyan]")
+                    for line in diff.split("\n"):
+                        if line.startswith("- "):
+                            console.print(f"  [red]{line}[/red]")
+                        elif line.startswith("+ "):
+                            console.print(f"  [green]{line}[/green]")
+                        else:
+                            console.print(f"  [dim]{line}[/dim]")
+                    console.print()
+
+        _show_apply_summary(result)
+        console.print("\n[yellow]No files were modified (dry run).[/yellow]\n")
+        raise typer.Exit(0)
+
+    # If --output-dir, copy entire project there and remap paths
+    if output_dir:
+        import shutil
+
+        output_dir = output_dir.resolve()
+        abs_root = resolved_root.resolve()
+        console.print(f"\n[bold]Copying project to {output_dir}...[/bold]")
+        shutil.copytree(abs_root, output_dir, dirs_exist_ok=True)
+
+        # Remap ReplacementSite file paths from original to copy
+        for site in sites:
+            rel = site.file.relative_to(abs_root)
+            site.file = output_dir / rel
+
+    # Apply renames
+    console.print(f"\n[bold]Applying renames...[/bold]")
+
+    result = apply_renames(
+        sites,
+        dry_run=False,
+        backup=backup if not output_dir else False,
+        backup_base=resolved_root / ".named-backup" if backup and not output_dir else None,
+    )
+
+    # Show results
+    _show_apply_summary(result)
+
+    if output_dir:
+        console.print(f"\n  Applied to: {output_dir}")
+    elif result.backup_dir:
+        console.print(f"\n  Backups saved to: {result.backup_dir}")
+
+    # Verification
+    if verify and result.files_modified:
+        console.print("\n[bold]Running compilation check...[/bold]")
+        from named.apply.verifier import verify_compilation
+
+        # Determine project root for compilation
+        compile_root = project_root or Path(metadata.get("project_path", "."))
+        success, message = verify_compilation(compile_root)
+
+        if success:
+            console.print(f"  [green]{message}[/green]")
+        else:
+            console.print(f"  [red]{message}[/red]")
+
+    console.print("\n[bold green]Apply complete![/bold green]\n")
+
+
+def _show_apply_summary(result):
+    """Show summary of apply results."""
+    from named.apply.models import ApplyResult
+
+    console.print(f"\n[bold]Results:[/bold]")
+    console.print(f"  Applied: [green]{len(result.applied)}[/green]")
+    console.print(f"  Skipped: [yellow]{len(result.skipped)}[/yellow]")
+    console.print(f"  Errors: [red]{len(result.errors)}[/red]")
+    console.print(f"  Files modified: {len(result.files_modified)}")
+
+    if result.skipped:
+        console.print(f"\n  [yellow]Skipped details:[/yellow]")
+        for site, reason in result.skipped[:10]:
+            console.print(f"    {site.original_name} -> {site.new_name}: {reason}")
+        if len(result.skipped) > 10:
+            console.print(f"    ... and {len(result.skipped) - 10} more")
+
+    if result.errors:
+        console.print(f"\n  [red]Error details:[/red]")
+        for site, reason in result.errors[:10]:
+            console.print(f"    {site.original_name}: {reason}")
+        if len(result.errors) > 10:
+            console.print(f"    ... and {len(result.errors) - 10} more")
 
 
 if __name__ == "__main__":

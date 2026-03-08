@@ -14,18 +14,9 @@ public class DataHelper {  // R1, R3: Generic class name
     public static final String DEFAULT = "";  // Default for what?
     public static final double RATE = 0.05;   // What rate?
 
-    // Good constant names
-    public static final int MAX_TRANSACTION_RETRIES = 100;
-    public static final String DEFAULT_CURRENCY_CODE = "USD";
-    public static final double ANNUAL_INTEREST_RATE = 0.05;
-
     // R4: Unpronounceable timestamp format
     private Date genymdhms;  // generationYearMonthDayHourMinuteSecond
     private Date modymdhms;  // modificationYearMonthDayHourMinuteSecond
-
-    // Good: Pronounceable
-    private Date generationTimestamp;
-    private Date modificationTimestamp;
 
     // R6: Single letter class-level variables (very bad)
     private int n;
@@ -75,7 +66,6 @@ public class DataHelper {  // R1, R3: Generic class name
         return obj != null;
     }
 
-    // Good method names
     public static String formatCurrency(double amount) {
         return String.format("$%.2f", amount);
     }
@@ -85,7 +75,6 @@ public class DataHelper {  // R1, R3: Generic class name
     }
 
     public static Date parseTransactionDate(String dateString) {
-        // Parse with clear intent
         return new Date();
     }
 
@@ -95,10 +84,4 @@ public class DataHelper {  // R1, R3: Generic class name
     public static void doEnable(Object obj) {}
     public static void performDisable(Object obj) {}
     // Should all use consistent pattern: activate/deactivate or enable/disable
-
-    // Good: Consistent terminology
-    public static void activateAccount(String accountId) {}
-    public static void deactivateAccount(String accountId) {}
-    public static void suspendAccount(String accountId) {}
-    public static void reactivateAccount(String accountId) {}
 }
