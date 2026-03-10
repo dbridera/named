@@ -85,7 +85,7 @@ def test_build_symbol_prompt():
     assert "Follow naming rules" in prompt
 
 
-@patch("named.suggestions.batch_client.OpenAI")
+@patch("named.suggestions.client_factory.OpenAI")
 def test_submit_batch(mock_openai):
     """Test batch submission."""
     # Setup mock
@@ -139,7 +139,7 @@ def test_submit_batch(mock_openai):
     assert batch_call_args[1]["completion_window"] == "24h"
 
 
-@patch("named.suggestions.batch_client.OpenAI")
+@patch("named.suggestions.client_factory.OpenAI")
 def test_get_batch_status(mock_openai):
     """Test getting batch status."""
     mock_client = Mock()
@@ -158,7 +158,7 @@ def test_get_batch_status(mock_openai):
     mock_client.batches.retrieve.assert_called_once_with("batch-123")
 
 
-@patch("named.suggestions.batch_client.OpenAI")
+@patch("named.suggestions.client_factory.OpenAI")
 @patch("named.suggestions.batch_client.time.sleep")
 def test_poll_batch_success(mock_sleep, mock_openai):
     """Test polling batch until completion."""
@@ -192,7 +192,7 @@ def test_poll_batch_success(mock_sleep, mock_openai):
     assert mock_client.batches.retrieve.call_count == 3
 
 
-@patch("named.suggestions.batch_client.OpenAI")
+@patch("named.suggestions.client_factory.OpenAI")
 @patch("named.suggestions.batch_client.time.sleep")
 def test_poll_batch_timeout(mock_sleep, mock_openai):
     """Test polling batch timeout."""
@@ -217,7 +217,7 @@ def test_poll_batch_timeout(mock_sleep, mock_openai):
         client.poll_batch(job, poll_interval=1, timeout=2)
 
 
-@patch("named.suggestions.batch_client.OpenAI")
+@patch("named.suggestions.client_factory.OpenAI")
 @patch("named.suggestions.batch_client.time.sleep")
 def test_poll_batch_failed(mock_sleep, mock_openai):
     """Test polling batch that fails."""
@@ -241,7 +241,7 @@ def test_poll_batch_failed(mock_sleep, mock_openai):
         client.poll_batch(job, poll_interval=1, timeout=100)
 
 
-@patch("named.suggestions.batch_client.OpenAI")
+@patch("named.suggestions.client_factory.OpenAI")
 def test_download_results(mock_openai):
     """Test downloading batch results."""
     mock_client = Mock()

@@ -6,9 +6,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from openai import OpenAI
-
 from named.logging import get_logger
+from named.suggestions.client_factory import create_openai_client
 
 logger = get_logger("batch_client")
 
@@ -70,14 +69,15 @@ class BatchAnalysisClient:
         >>> parsed = client.parse_batch_results(results, completed_job)
     """
 
-    def __init__(self, api_key: str, model: str = "gpt-4o"):
+    def __init__(self, api_key: str, model: str = "gpt-4o", base_url: str | None = None):
         """Initialize batch analysis client.
 
         Args:
-            api_key: OpenAI API key
+            api_key: API key for OpenAI or Azure AI Foundry.
             model: Model to use for analysis (default: gpt-4o)
+            base_url: Custom base URL for OpenAI-compatible API (e.g., Azure AI Foundry).
         """
-        self.client = OpenAI(api_key=api_key)
+        self.client = create_openai_client(api_key=api_key, base_url=base_url)
         self.model = model
 
     def create_batch_requests(
