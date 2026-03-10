@@ -16,6 +16,10 @@ class Settings(BaseSettings):
     # OpenAI settings
     openai_api_key: str = Field(default="", description="OpenAI API key")
     openai_model: str = Field(default="gpt-4o", description="OpenAI model to use")
+    openai_base_url: str = Field(
+        default="",
+        description="Custom base URL for OpenAI-compatible API (e.g., Azure AI Foundry)",
+    )
 
     # Analysis settings
     confidence_threshold: float = Field(

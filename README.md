@@ -2,13 +2,13 @@
 
 **Intelligent Java Code Refactoring System for Naming Conventions**
 
-Named analyzes Java codebases and suggests naming improvements based on banking industry code quality rules using AI (OpenAI GPT-4o).
+Named analyzes Java codebases and suggests naming improvements based on banking industry code quality rules using AI (OpenAI GPT-4o or Azure AI Foundry).
 
 ## Features
 
 - **9 Naming Rules**: Based on Clean Code principles adapted for banking industry
 - **5 Guardrails**: Automatic protection against breaking changes (@JsonProperty, @Path, conflicts, etc.)
-- **AI-Powered**: Uses OpenAI GPT-4o to generate intelligent naming suggestions
+- **AI-Powered**: Uses OpenAI GPT-4o (or Azure AI Foundry) to generate intelligent naming suggestions
 - **Dual Processing Modes**: Real-time streaming or async batch processing (50% cost savings)
 - **Symbol References**: Shows where each symbol is used across the codebase
 - **Impact Analysis**: Risk assessment for each rename (low/medium/high)
@@ -31,13 +31,26 @@ uv pip install -e ".[dev]"
 
 ## Quick Start
 
-1. **Set your OpenAI API key:**
+1. **Set your API key:**
+
+   **Option A: OpenAI (direct)**
    ```bash
-   export NAMED_OPENAI_API_KEY=your-key-here
+   export NAMED_OPENAI_API_KEY=your-openai-key
    ```
+
+   **Option B: Azure AI Foundry**
+   ```bash
+   export NAMED_OPENAI_API_KEY=your-azure-api-key
+   export NAMED_OPENAI_BASE_URL=https://YOUR-RESOURCE.openai.azure.com/openai/v1/
+   export NAMED_OPENAI_MODEL=your-deployment-name  # e.g., gpt-4o
+   ```
+
    Or create a `.env` file:
-   ```
+   ```bash
    NAMED_OPENAI_API_KEY=your-key-here
+   # For Azure AI Foundry, also set:
+   # NAMED_OPENAI_BASE_URL=https://YOUR-RESOURCE.openai.azure.com/openai/v1/
+   # NAMED_OPENAI_MODEL=your-deployment-name
    ```
 
 2. **Analyze a project:**
@@ -194,7 +207,7 @@ named rules --lang es
 |--------|-------------|
 | `--output, -o` | Output directory for reports (default: `./named-report`) |
 | `--format, -f` | Output format: `json`, `md`, or `all` (default: `all`) |
-| `--model, -m` | OpenAI model to use (default: `gpt-4o`) |
+| `--model, -m` | Model or deployment name to use (default: `gpt-4o`) |
 | `--mode` | Processing mode: `streaming` (realtime) or `batch` (async, 50% cost) (default: `streaming`) |
 | `--dry-run` | Parse only, skip LLM analysis |
 | `--verbose, -v` | Show detailed progress and LLM logs |
@@ -204,7 +217,7 @@ named rules --lang es
 
 | Option | Description |
 |--------|-------------|
-| `--model, -m` | OpenAI model for pricing (default: `gpt-4o`) |
+| `--model, -m` | Model or deployment name for pricing (default: `gpt-4o`) |
 | `--batch-size` | Symbols per batch for batch count calculation (default: `50`) |
 | `--exclude, -e` | Glob patterns to exclude |
 | `--verbose, -v` | Show detailed breakdown |
@@ -523,9 +536,34 @@ The `.env` file is loaded at runtime via `--env-file`, never baked into the imag
 NAMED_OPENAI_API_KEY=sk-your-key-here
 NAMED_OPENAI_MODEL=gpt-4o
 NAMED_BATCH_SIZE=50
+
+# For Azure AI Foundry:
+# NAMED_OPENAI_BASE_URL=https://YOUR-RESOURCE.openai.azure.com/openai/v1/
 ```
 
 ## Configuration
+
+### API Provider
+
+Named supports both **OpenAI** and **Azure AI Foundry** as API providers. Configure via environment variables or `.env` file:
+
+```bash
+# Required: API key (works for both OpenAI and Azure AI Foundry)
+NAMED_OPENAI_API_KEY=your-key-here
+
+# Optional: Model or deployment name (default: gpt-4o)
+# For Azure AI Foundry, use your deployment name instead of the model name.
+NAMED_OPENAI_MODEL=gpt-4o
+
+# Optional: Custom base URL for Azure AI Foundry
+# Leave empty or unset to use OpenAI directly.
+# For Azure AI Foundry, use one of:
+#   https://YOUR-RESOURCE.openai.azure.com/openai/v1/
+#   https://YOUR-RESOURCE.services.ai.azure.com/openai/v1/
+NAMED_OPENAI_BASE_URL=
+```
+
+### Batch Processing
 
 Batch processing can be configured via environment variables in `.env`:
 
@@ -536,6 +574,8 @@ NAMED_BATCH_SIZE=50              # Symbols per batch (1-100)
 NAMED_BATCH_POLL_INTERVAL=60     # Seconds between status checks
 NAMED_BATCH_TIMEOUT=90000        # Max wait time (25 hours)
 ```
+
+> **Note:** Batch mode may not be available on all Azure AI Foundry endpoints. If batch submission fails with Azure, use streaming mode instead.
 
 Or use the `batch_settings.yaml` file to customize batch behavior.
 
@@ -558,8 +598,9 @@ named/
 │   │   ├── reference_finder.py # Find symbol usages
 │   │   └── impact_analyzer.py # Rename impact analysis
 │   ├── suggestions/           # LLM integration
-│   │   ├── llm_client.py      # OpenAI wrapper
-│   │   ├── batch_client.py    # Batch API client (NEW)
+│   │   ├── client_factory.py  # OpenAI/Azure client factory
+│   │   ├── llm_client.py      # Streaming API wrapper
+│   │   ├── batch_client.py    # Batch API client
 │   │   └── prompt_builder.py  # Prompt construction
 │   ├── validation/            # Guardrail validation
 │   │   └── validator.py       # Check guardrails + scope conflicts

@@ -3,10 +3,9 @@
 import json
 from typing import Any
 
-from openai import OpenAI
-
 from named.config import get_settings
 from named.logging import get_logger
+from named.suggestions.client_factory import create_openai_client
 from named.rules.models import NameSuggestion
 
 logger = get_logger("llm")
@@ -42,13 +41,15 @@ class LLMClient:
         self,
         api_key: str | None = None,
         model: str | None = None,
+        base_url: str | None = None,
         verbose: bool = False,
     ):
         """Initialize the LLM client.
 
         Args:
-            api_key: OpenAI API key. If not provided, uses environment variable.
+            api_key: API key. If not provided, uses environment variable.
             model: Model to use. If not provided, uses settings default.
+            base_url: Custom base URL for OpenAI-compatible API (e.g., Azure AI Foundry).
             verbose: If True, log prompts and responses at DEBUG level.
         """
         settings = get_settings()
@@ -58,13 +59,11 @@ class LLMClient:
         self._total_tokens = 0
         self._request_count = 0
 
-        if not self.api_key:
-            raise LLMError(
-                "OpenAI API key not provided. Set NAMED_OPENAI_API_KEY environment variable "
-                "or pass api_key parameter."
-            )
+        try:
+            self.client = create_openai_client(api_key=self.api_key, base_url=base_url)
+        except ValueError as e:
+            raise LLMError(str(e)) from e
 
-        self.client = OpenAI(api_key=self.api_key)
         logger.debug(f"LLM client initialized with model: {self.model}")
 
     @property

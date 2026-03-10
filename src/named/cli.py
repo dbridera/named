@@ -718,7 +718,10 @@ def batch_status(
         console.print("[yellow]No batch jobs found in file.[/yellow]")
         raise typer.Exit(0)
 
-    batch_client = BatchAnalysisClient(api_key=settings.openai_api_key)
+    batch_client = BatchAnalysisClient(
+        api_key=settings.openai_api_key,
+        base_url=settings.openai_base_url or None,
+    )
 
     # Check each batch
     console.print(f"Checking {len(jobs_data)} batch job(s)...\n")
@@ -835,7 +838,10 @@ def batch_retrieve(
         console.print("[yellow]No batch jobs found in file.[/yellow]")
         raise typer.Exit(0)
 
-    batch_client = BatchAnalysisClient(api_key=settings.openai_api_key)
+    batch_client = BatchAnalysisClient(
+        api_key=settings.openai_api_key,
+        base_url=settings.openai_base_url or None,
+    )
 
     # Retrieve all completed batches
     all_results = []
@@ -1116,8 +1122,19 @@ def _handle_batch_mode(
         console.print("[red]Error:[/red] NAMED_OPENAI_API_KEY environment variable not set")
         raise typer.Exit(1)
 
+    # Warn about batch mode on custom endpoints
+    if settings.openai_base_url:
+        console.print(
+            "[yellow]Warning:[/yellow] Batch API may not be available on custom endpoints "
+            "(e.g., Azure AI Foundry). If batch submission fails, use streaming mode instead.\n"
+        )
+
     # Initialize batch client
-    batch_client = BatchAnalysisClient(api_key=settings.openai_api_key, model=model)
+    batch_client = BatchAnalysisClient(
+        api_key=settings.openai_api_key,
+        model=model,
+        base_url=settings.openai_base_url or None,
+    )
 
     # Group symbols into batches
     batch_size = settings.batch_size
