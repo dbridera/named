@@ -2,12 +2,21 @@
 
 import json
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 from named.logging import get_logger
 from named.suggestions.client_factory import create_openai_client
+from named.suggestions.common import (
+    CHUNK_SIZE,
+    CHUNK_THRESHOLD,
+    TOKENS_BASE,
+    TOKENS_MAX,
+    TOKENS_MIN,
+    TOKENS_PER_SYMBOL,
+    strip_markdown_fences,
+)
 
 logger = get_logger("batch_client")
 
@@ -20,11 +29,12 @@ class BatchJob:
         batch_id: Unique identifier for the batch job
         input_file_id: ID of the uploaded input JSONL file
         status: Current status (validating, in_progress, completed, failed, expired, cancelled)
-        symbols: Original symbol data for result mapping
+        symbols: Original symbol data for result mapping (flat list)
         created_at: Unix timestamp when batch was created
         completed_at: Unix timestamp when batch completed (if completed)
         output_file_id: ID of the output file containing results (if completed)
         error: Error message if batch failed
+        file_map: Maps custom_id -> [global_start_idx, symbol_count] for per-file results
     """
 
     batch_id: str
@@ -35,10 +45,11 @@ class BatchJob:
     completed_at: int | None = None
     output_file_id: str | None = None
     error: str | None = None
+    file_map: dict[str, list[int]] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Convert BatchJob to dictionary for serialization."""
-        return {
+        d = {
             "batch_id": self.batch_id,
             "input_file_id": self.input_file_id,
             "status": self.status,
@@ -48,122 +59,142 @@ class BatchJob:
             "output_file_id": self.output_file_id,
             "error": self.error,
         }
+        if self.file_map is not None:
+            d["file_map"] = self.file_map
+        return d
 
 
 class BatchAnalysisClient:
     """Client for batch analysis using OpenAI Batch API.
 
     This client handles the full workflow of batch processing:
-    1. Create batch requests in JSONL format
+    1. Create batch requests in JSONL format (one per file, using full source context)
     2. Upload to OpenAI and submit batch job
     3. Poll status until completion
     4. Download and parse results
     5. Map results back to original symbols
-
-    Example:
-        >>> client = BatchAnalysisClient(api_key="sk-...")
-        >>> requests = client.create_batch_requests(symbols, system_prompt, rules_context)
-        >>> job = client.submit_batch(requests, symbols)
-        >>> completed_job = client.poll_batch(job)
-        >>> results = client.download_results(completed_job)
-        >>> parsed = client.parse_batch_results(results, completed_job)
     """
 
     def __init__(self, api_key: str, model: str = "gpt-4o", base_url: str | None = None):
-        """Initialize batch analysis client.
-
-        Args:
-            api_key: API key for OpenAI or Azure AI Foundry.
-            model: Model to use for analysis (default: gpt-4o)
-            base_url: Custom base URL for OpenAI-compatible API (e.g., Azure AI Foundry).
-        """
+        """Initialize batch analysis client."""
         self.client = create_openai_client(api_key=api_key, base_url=base_url)
         self.model = model
 
-    def create_batch_requests(
-        self, symbols: list[dict[str, Any]], system_prompt: str, rules_context: str
-    ) -> list[dict[str, Any]]:
-        """Generate batch requests in OpenAI JSONL format.
+    def create_file_batch_requests(
+        self,
+        file_groups: list[dict[str, Any]],
+        system_prompt: str,
+        rules_context: str,
+    ) -> tuple[list[dict[str, Any]], dict[str, list[int]]]:
+        """Generate batch requests grouped by file, using the same FileAnalysisPrompt as streaming.
+
+        Each file becomes one JSONL request (or multiple if chunked for large files).
+        This matches the streaming mode behavior exactly.
 
         Args:
-            symbols: List of symbols with name, kind, context, etc.
+            file_groups: List of dicts with keys:
+                - file_path: str path to the Java file
+                - file_source: Full source code of the file
+                - symbols: List of symbol dicts for this file
             system_prompt: System role message
             rules_context: Rules and guardrails context
 
         Returns:
-            List of request dicts ready for JSONL serialization
-
-        Example:
-            >>> symbols = [{"name": "foo", "kind": "method", "context": "void foo() {}"}]
-            >>> requests = client.create_batch_requests(symbols, system_prompt, rules)
-            >>> len(requests)
-            1
-            >>> requests[0]["custom_id"]
-            'symbol-0'
+            Tuple of (requests, file_map) where:
+                - requests: List of JSONL request dicts
+                - file_map: Maps custom_id -> [global_start_idx, symbol_count]
         """
+        from named.prompts.analysis import FileAnalysisPrompt
+
+        prompt_builder = FileAnalysisPrompt()
         requests = []
-        for idx, symbol in enumerate(symbols):
-            # Build prompt for this symbol
-            user_prompt = self._build_symbol_prompt(symbol, rules_context)
+        file_map = {}
+        global_idx = 0
 
-            request = {
-                "custom_id": f"symbol-{idx}",  # For result mapping
-                "method": "POST",
-                "url": "/v1/chat/completions",
-                "body": {
-                    "model": self.model,
-                    "messages": [
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt},
-                    ],
-                    "temperature": 0.3,
-                    "max_tokens": 1000,
-                },
-            }
-            requests.append(request)
+        for file_idx, fg in enumerate(file_groups):
+            file_path = fg["file_path"]
+            file_source = fg["file_source"]
+            symbols = fg["symbols"]
+            file_name = Path(file_path).name
 
-        logger.info(f"Created {len(requests)} batch requests")
-        return requests
+            # Build symbol dicts for the prompt (same format as streaming)
+            symbol_dicts = [
+                {
+                    "name": s["name"],
+                    "kind": s["kind"],
+                    "line": s.get("line"),
+                    "annotations": (
+                        ", ".join(f"@{a}" for a in s["annotations"])
+                        if s.get("annotations")
+                        else "None"
+                    ),
+                }
+                for s in symbols
+            ]
 
-    def _build_symbol_prompt(self, symbol: dict[str, Any], rules_context: str) -> str:
-        """Build prompt for a single symbol.
+            # Chunk large files (same thresholds as streaming)
+            if len(symbols) <= CHUNK_THRESHOLD:
+                chunks = [(0, symbols, symbol_dicts)]
+            else:
+                chunks = []
+                for chunk_start in range(0, len(symbols), CHUNK_SIZE):
+                    chunk_end = min(chunk_start + CHUNK_SIZE, len(symbols))
+                    chunks.append((
+                        chunk_start,
+                        symbols[chunk_start:chunk_end],
+                        symbol_dicts[chunk_start:chunk_end],
+                    ))
+                logger.info(
+                    f"Large file {file_name}: {len(symbols)} symbols → "
+                    f"{len(chunks)} chunks of {CHUNK_SIZE}"
+                )
 
-        Args:
-            symbol: Symbol dict with name, kind, context, etc.
-            rules_context: Rules and guardrails context
+            for chunk_idx, (chunk_start, chunk_symbols, chunk_symbol_dicts) in enumerate(chunks):
+                custom_id = f"file-{file_idx}-chunk-{chunk_idx}"
 
-        Returns:
-            User prompt string
-        """
-        # Build symbol context
-        symbol_info = f"""Symbol to analyze:
-Name: {symbol['name']}
-Kind: {symbol['kind']}
-Context:
-```
-{symbol.get('context', '')}
-```
-"""
+                # Render prompt using FileAnalysisPrompt (same as streaming)
+                user_prompt = prompt_builder.render(
+                    file_name=file_name,
+                    file_source=file_source,
+                    symbols=chunk_symbol_dicts,
+                    rules_context=rules_context,
+                )
 
-        # Add annotations if present
-        if symbol.get("annotations"):
-            annotations_str = ", ".join(symbol["annotations"])
-            symbol_info += f"\nAnnotations: {annotations_str}"
+                # Dynamic max_tokens (same formula as streaming)
+                max_tokens = min(
+                    max(TOKENS_MIN, len(chunk_symbols) * TOKENS_PER_SYMBOL + TOKENS_BASE),
+                    TOKENS_MAX,
+                )
 
-        # Combine with rules
-        prompt = f"""{rules_context}
+                request = {
+                    "custom_id": custom_id,
+                    "method": "POST",
+                    "url": "/v1/chat/completions",
+                    "body": {
+                        "model": self.model,
+                        "messages": [
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_prompt},
+                        ],
+                        "temperature": 0.3,
+                        "max_tokens": max_tokens,
+                    },
+                }
+                requests.append(request)
 
-{symbol_info}
+                # Track mapping: custom_id -> [global_start, count]
+                file_map[custom_id] = [global_idx, len(chunk_symbols)]
+                global_idx += len(chunk_symbols)
 
-Analyze this symbol and provide a JSON response following the schema."""
-
-        return prompt
+        logger.info(f"Created {len(requests)} file-based batch requests")
+        return requests, file_map
 
     def submit_batch(
         self,
         requests: list[dict[str, Any]],
         symbols: list[dict[str, Any]],
         description: str = "Named analysis batch",
+        file_map: dict[str, list[int]] | None = None,
     ) -> BatchJob:
         """Submit a batch job to OpenAI.
 
@@ -171,12 +202,10 @@ Analyze this symbol and provide a JSON response following the schema."""
             requests: List of batch request dicts
             symbols: Original symbol data for result mapping
             description: Human-readable batch description
+            file_map: Maps custom_id -> [global_start, count] for per-file results
 
         Returns:
             BatchJob object with batch_id for tracking
-
-        Raises:
-            Exception: If file upload or batch creation fails
         """
         # Write requests to JSONL format
         jsonl_lines = [json.dumps(req) for req in requests]
@@ -213,38 +242,23 @@ Analyze this symbol and provide a JSON response following the schema."""
             status=batch_response.status,
             symbols=symbols,
             created_at=batch_response.created_at,
+            file_map=file_map,
         )
 
     def poll_batch(
         self, batch_job: BatchJob, poll_interval: int = 60, timeout: int = 25 * 3600
     ) -> BatchJob:
-        """Poll batch status until completion.
-
-        Args:
-            batch_job: BatchJob to monitor
-            poll_interval: Seconds between status checks (default: 60)
-            timeout: Max seconds to wait before giving up (default: 25 hours)
-
-        Returns:
-            Updated BatchJob with completion status
-
-        Raises:
-            TimeoutError: If batch doesn't complete within timeout
-            RuntimeError: If batch fails, expires, or is cancelled
-        """
+        """Poll batch status until completion."""
         start_time = time.time()
-
         logger.info(f"Polling batch {batch_job.batch_id}...")
 
         while True:
-            # Check timeout
             elapsed = time.time() - start_time
             if elapsed > timeout:
                 raise TimeoutError(
                     f"Batch {batch_job.batch_id} exceeded timeout ({timeout}s)"
                 )
 
-            # Get current status
             try:
                 batch_response = self.client.batches.retrieve(batch_job.batch_id)
                 batch_job.status = batch_response.status
@@ -253,7 +267,6 @@ Analyze this symbol and provide a JSON response following the schema."""
                     f"Batch status: {batch_job.status} (elapsed: {int(elapsed)}s)"
                 )
 
-                # Check completion states
                 if batch_response.status == "completed":
                     batch_job.completed_at = batch_response.completed_at
                     batch_job.output_file_id = batch_response.output_file_id
@@ -267,7 +280,6 @@ Analyze this symbol and provide a JSON response following the schema."""
                     logger.error(f"Batch failed with status: {batch_response.status}")
                     raise RuntimeError(batch_job.error)
 
-                # Still processing
                 time.sleep(poll_interval)
 
             except Exception as e:
@@ -277,29 +289,16 @@ Analyze this symbol and provide a JSON response following the schema."""
                 time.sleep(poll_interval)
 
     def download_results(self, batch_job: BatchJob) -> list[dict[str, Any]]:
-        """Download and parse batch results.
-
-        Args:
-            batch_job: Completed BatchJob with output_file_id
-
-        Returns:
-            List of response dicts with custom_id for mapping
-
-        Raises:
-            ValueError: If batch job has no output file
-            Exception: If download or parsing fails
-        """
+        """Download and parse batch results."""
         if not batch_job.output_file_id:
             raise ValueError("Batch job has no output file")
 
         logger.info(f"Downloading results from {batch_job.output_file_id}...")
 
         try:
-            # Download JSONL results
             file_response = self.client.files.content(batch_job.output_file_id)
             content = file_response.read()
 
-            # Parse JSONL (one response per line)
             results = []
             for line in content.decode("utf-8").strip().split("\n"):
                 if line:
@@ -317,37 +316,33 @@ Analyze this symbol and provide a JSON response following the schema."""
     ) -> dict[int, dict[str, Any]]:
         """Parse batch results and map to symbol indices.
 
-        Args:
-            results: Raw batch API responses
-            batch_job: BatchJob with original symbol data
+        Handles both formats:
+        - Per-file (file_map present): each response has {"results": [{"symbol_index": 0, ...}]}
+        - Legacy per-symbol: each response is a single suggestion
 
         Returns:
-            Dict mapping symbol index to parsed suggestion
-
-        Example:
-            >>> parsed = client.parse_batch_results(results, batch_job)
-            >>> parsed[0]["needs_rename"]
-            True
-            >>> parsed[0]["suggestion"]["suggested_name"]
-            'calculateTotal'
+            Dict mapping global symbol index to parsed suggestion data.
         """
+        if batch_job.file_map:
+            return self._parse_file_results(results, batch_job)
+        return self._parse_legacy_results(results)
+
+    def _parse_file_results(
+        self, results: list[dict[str, Any]], batch_job: BatchJob
+    ) -> dict[int, dict[str, Any]]:
+        """Parse per-file batch results using file_map for index mapping."""
         parsed = {}
 
         for result in results:
-            # Extract custom_id (e.g., "symbol-42")
             custom_id = result.get("custom_id", "")
-            if not custom_id.startswith("symbol-"):
-                logger.warning(f"Invalid custom_id: {custom_id}")
+
+            if custom_id not in batch_job.file_map:
+                logger.warning(f"Unknown custom_id in results: {custom_id}")
                 continue
 
-            # Extract symbol index
-            try:
-                symbol_idx = int(custom_id.split("-")[1])
-            except (IndexError, ValueError):
-                logger.warning(f"Failed to parse symbol index from {custom_id}")
-                continue
+            global_start, count = batch_job.file_map[custom_id]
 
-            # Parse LLM response
+            # Extract LLM response content
             response_body = result.get("response", {}).get("body", {})
             choices = response_body.get("choices", [])
 
@@ -355,11 +350,76 @@ Analyze this symbol and provide a JSON response following the schema."""
                 logger.warning(f"No choices in response for {custom_id}")
                 continue
 
-            # Extract message content (JSON string)
             content = choices[0].get("message", {}).get("content", "")
+            stripped = strip_markdown_fences(content)
 
             try:
-                suggestion_data = json.loads(content)
+                response_data = json.loads(stripped)
+            except json.JSONDecodeError as e:
+                logger.warning(f"Failed to parse JSON for {custom_id}: {e}")
+                continue
+
+            # Extract results array (same format as streaming response)
+            results_array = response_data.get("results", [])
+            if not results_array:
+                logger.warning(f"No results array in response for {custom_id}")
+                continue
+
+            for item in results_array:
+                local_idx = item.get("symbol_index")
+                if local_idx is None or not isinstance(local_idx, int):
+                    continue
+                if local_idx < 0 or local_idx >= count:
+                    logger.warning(
+                        f"symbol_index {local_idx} out of range for {custom_id} (count={count})"
+                    )
+                    continue
+
+                if not item.get("needs_rename", False):
+                    continue
+
+                suggestion = item.get("suggestion")
+                if not suggestion:
+                    continue
+
+                global_idx = global_start + local_idx
+                parsed[global_idx] = item
+
+            logger.debug(f"Parsed results for {custom_id}: {len(results_array)} entries")
+
+        logger.info(f"Successfully parsed {len(parsed)} file-based results")
+        return parsed
+
+    def _parse_legacy_results(
+        self, results: list[dict[str, Any]]
+    ) -> dict[int, dict[str, Any]]:
+        """Parse legacy per-symbol batch results (backward compatibility)."""
+        parsed = {}
+
+        for result in results:
+            custom_id = result.get("custom_id", "")
+            if not custom_id.startswith("symbol-"):
+                logger.warning(f"Invalid custom_id: {custom_id}")
+                continue
+
+            try:
+                symbol_idx = int(custom_id.split("-")[1])
+            except (IndexError, ValueError):
+                logger.warning(f"Failed to parse symbol index from {custom_id}")
+                continue
+
+            response_body = result.get("response", {}).get("body", {})
+            choices = response_body.get("choices", [])
+
+            if not choices:
+                logger.warning(f"No choices in response for {custom_id}")
+                continue
+
+            content = choices[0].get("message", {}).get("content", "")
+            stripped = strip_markdown_fences(content)
+
+            try:
+                suggestion_data = json.loads(stripped)
                 parsed[symbol_idx] = suggestion_data
                 logger.debug(f"Parsed result for {custom_id}")
             except json.JSONDecodeError as e:
@@ -370,14 +430,7 @@ Analyze this symbol and provide a JSON response following the schema."""
         return parsed
 
     def get_batch_status(self, batch_id: str) -> str:
-        """Get current status of a batch job.
-
-        Args:
-            batch_id: ID of the batch to check
-
-        Returns:
-            Current status string (validating, in_progress, completed, failed, expired, cancelled)
-        """
+        """Get current status of a batch job."""
         try:
             batch_response = self.client.batches.retrieve(batch_id)
             return batch_response.status

@@ -212,13 +212,10 @@ def analyze(
     try:
         from rich.progress import BarColumn, TaskProgressColumn, TimeRemainingColumn
 
-        from named.analysis.impact_analyzer import compute_rename_impact
-        from named.analysis.reference_finder import find_references
         from named.prompts import get_rules_context
         from named.rules.guardrails import GUARDRAILS
         from named.rules.naming_rules import NAMING_RULES
         from named.suggestions.llm_client import LLMClient, LLMError
-        from named.validation.validator import validate_suggestion
 
         client = LLMClient(model=model, verbose=verbose)
 
@@ -269,32 +266,31 @@ def analyze(
                 )
 
                 # Process returned suggestions (parallel list to file_symbols)
+                from named.suggestions.common import enrich_suggestion
+
                 for symbol, suggestion in zip(file_symbols, suggestions):
                     if suggestion is None:
                         continue
 
-                    # Find references for symbols that need renaming
-                    refs = find_references(
+                    result = enrich_suggestion(
+                        suggestion=suggestion,
                         symbol_name=symbol.name,
                         symbol_kind=symbol.kind,
-                        java_files=java_files,
+                        symbol_file=str(symbol.location.file),
+                        symbol_line=symbol.location.line,
                         parent_class=symbol.parent_class,
+                        annotations=symbol.annotations,
+                        java_files=java_files,
                     )
-                    suggestion.references = refs
-                    suggestion.location = {
-                        "file": str(symbol.location.file),
-                        "line": symbol.location.line,
-                    }
-                    suggestion.impact_analysis = compute_rename_impact(refs)
 
-                    result = validate_suggestion(suggestion, symbol.annotations)
-                    results.append(result)
-
-                    if verbose:
-                        console.print(
-                            f"  [green]→[/green] {symbol.name} → {suggestion.suggested_name} "
-                            f"({suggestion.confidence:.0%}) [dim]({len(refs)} refs)[/dim]"
-                        )
+                    if result:
+                        results.append(result)
+                        if verbose:
+                            s = result.suggestion
+                            console.print(
+                                f"  [green]→[/green] {s.original_name} → {s.suggested_name} "
+                                f"({s.confidence:.0%}) [dim]({len(s.references)} refs)[/dim]"
+                            )
 
                 progress.advance(task)
 
@@ -303,45 +299,21 @@ def analyze(
         console.print("\nMake sure NAMED_OPENAI_API_KEY environment variable is set.")
         raise typer.Exit(1)
 
-    # Post-validation: detect cross-suggestion naming conflicts
-    from named.validation.validator import (
-        detect_getter_setter_mismatches,
-        detect_override_conflicts,
-        detect_scope_conflicts,
-        detect_shadow_collisions,
-    )
+    # Post-validation and export (shared with batch mode)
+    from named.suggestions.common import export_reports, post_validate_results
 
-    pre_valid = sum(1 for r in results if r.is_valid)
-    results = detect_scope_conflicts(results, all_symbols)
-    results = detect_override_conflicts(results, all_symbols)
-    results = detect_shadow_collisions(results, all_symbols)
-    results = detect_getter_setter_mismatches(results, all_symbols)
-    post_valid = sum(1 for r in results if r.is_valid)
-    conflicts_found = pre_valid - post_valid
+    results, conflicts_found = post_validate_results(results, all_symbols)
     if conflicts_found > 0:
         console.print(
             f"\n[yellow]Warning:[/yellow] Blocked {conflicts_found} suggestion(s) "
             f"due to naming conflicts (duplicate targets, overrides, or shadow collisions)"
         )
 
-    # Generate reports
     console.print("\n[bold]Generating reports...[/bold]")
+    paths = export_reports(results, all_symbols, output, project_path, model, format)
+    for fmt, path in paths.items():
+        console.print(f"  - {fmt.upper()}: {path}")
 
-    output.mkdir(parents=True, exist_ok=True)
-
-    if format in ("json", "all"):
-        from named.export.json_exporter import export_json
-
-        json_path = export_json(results, all_symbols, output, project_path, model)
-        console.print(f"  - JSON: {json_path}")
-
-    if format in ("md", "all"):
-        from named.export.markdown_exporter import export_markdown
-
-        md_path = export_markdown(results, all_symbols, output, project_path, model)
-        console.print(f"  - Markdown: {md_path}")
-
-    # Show results summary
     _show_results_summary(results)
 
     console.print("\n[bold green]Analysis complete![/bold green]")
@@ -708,8 +680,7 @@ def batch_status(
 
     # Load batch jobs
     try:
-        with open(batch_jobs) as f:
-            jobs_data = json.load(f)
+        run_metadata, jobs_data = _load_batch_jobs(batch_jobs)
     except Exception as e:
         console.print(f"[red]Error:[/red] Failed to load batch jobs file: {e}")
         raise typer.Exit(1)
@@ -717,6 +688,15 @@ def batch_status(
     if not jobs_data:
         console.print("[yellow]No batch jobs found in file.[/yellow]")
         raise typer.Exit(0)
+
+    # Show run info if available
+    if run_metadata.get("run_id"):
+        console.print(f"[dim]Run ID: {run_metadata['run_id']}[/dim]")
+        if run_metadata.get("project_path"):
+            console.print(f"[dim]Project: {run_metadata['project_path']}[/dim]")
+        if run_metadata.get("created_at"):
+            console.print(f"[dim]Created: {run_metadata['created_at']}[/dim]")
+        console.print()
 
     batch_client = BatchAnalysisClient(
         api_key=settings.openai_api_key,
@@ -740,7 +720,7 @@ def batch_status(
             if status == "completed":
                 completed.append(batch_id)
                 console.print(f"[green]✓[/green] {batch_id}: Completed")
-            elif status in ["validating", "in_progress"]:
+            elif status in ["validating", "in_progress", "finalizing"]:
                 in_progress.append(batch_id)
                 status_display = status.replace("_", " ").title()
                 console.print(f"[yellow]⏱[/yellow] {batch_id}: {status_display}")
@@ -792,6 +772,12 @@ def batch_retrieve(
         "-f",
         help="Output format: json, md, or all",
     ),
+    model: str = typer.Option(
+        "gpt-4o",
+        "--model",
+        "-m",
+        help="Model used for analysis (for report metadata)",
+    ),
     verbose: bool = typer.Option(
         False,
         "--verbose",
@@ -828,8 +814,7 @@ def batch_retrieve(
 
     # Load batch jobs
     try:
-        with open(batch_jobs) as f:
-            jobs_data = json.load(f)
+        run_metadata, jobs_data = _load_batch_jobs(batch_jobs)
     except Exception as e:
         console.print(f"[red]Error:[/red] Failed to load batch jobs file: {e}")
         raise typer.Exit(1)
@@ -838,10 +823,28 @@ def batch_retrieve(
         console.print("[yellow]No batch jobs found in file.[/yellow]")
         raise typer.Exit(0)
 
+    # Use model from run metadata if available (CLI flag overrides)
+    if model == "gpt-4o" and run_metadata.get("model"):
+        model = run_metadata["model"]
+
+    # Show run info if available
+    if run_metadata.get("run_id"):
+        console.print(f"[dim]Run ID: {run_metadata['run_id']}[/dim]")
+        if run_metadata.get("project_path"):
+            console.print(f"[dim]Project: {run_metadata['project_path']}[/dim]")
+        console.print()
+
     batch_client = BatchAnalysisClient(
         api_key=settings.openai_api_key,
         base_url=settings.openai_base_url or None,
     )
+
+    # Collect all java files across all batch jobs for reference finding
+    all_java_files = list(set(
+        Path(s["file"])
+        for job_data in jobs_data
+        for s in job_data.get("symbols", [])
+    ))
 
     # Retrieve all completed batches
     all_results = []
@@ -876,13 +879,10 @@ def batch_retrieve(
 
             # Convert to NameSuggestion objects and validate
             from named.suggestions.llm_client import parse_llm_response
-            from named.validation.validator import validate_suggestion
-            from named.analysis.reference_finder import find_references
-            from named.analysis.impact_analyzer import compute_rename_impact
+            from named.suggestions.common import enrich_suggestion
+            from named.rules.models import NameSuggestion
 
-            # We need java_files for reference finding
-            # Extract from symbol file paths
-            java_files = list(set(Path(s["file"]) for s in job.symbols))
+            is_file_format = job.file_map is not None
 
             for symbol_idx, suggestion_data in parsed.items():
                 if symbol_idx >= len(job.symbols):
@@ -893,36 +893,48 @@ def batch_retrieve(
 
                 symbol = job.symbols[symbol_idx]
 
-                # Parse into NameSuggestion
                 try:
-                    suggestion = parse_llm_response(suggestion_data, symbol["name"])
+                    # Per-file format: suggestion_data has {symbol_index, needs_rename, suggestion: {...}}
+                    # Legacy format: suggestion_data is the raw LLM JSON
+                    if is_file_format:
+                        s = suggestion_data.get("suggestion", {})
+                        if not s:
+                            continue
+                        suggestion = NameSuggestion(
+                            original_name=symbol["name"],
+                            suggested_name=s.get("suggested_name", ""),
+                            symbol_kind=symbol["kind"],
+                            confidence=s.get("confidence", 0.0),
+                            rationale=s.get("rationale", ""),
+                            rules_addressed=s.get("rules_addressed", []),
+                        )
+                    else:
+                        suggestion = parse_llm_response(suggestion_data, symbol["name"])
 
                     if suggestion:
-                        # Find references
-                        refs = find_references(
+                        result = enrich_suggestion(
+                            suggestion=suggestion,
                             symbol_name=symbol["name"],
                             symbol_kind=symbol["kind"],
-                            java_files=java_files,
+                            symbol_file=symbol["file"],
+                            symbol_line=symbol["line"],
                             parent_class=symbol.get("parent_class"),
+                            annotations=symbol.get("annotations", []),
+                            java_files=all_java_files,
                         )
-                        suggestion.references = refs
-                        suggestion.location = {
-                            "file": symbol["file"],
-                            "line": symbol["line"],
-                        }
 
-                        # Compute impact
-                        suggestion.impact_analysis = compute_rename_impact(refs)
-
-                        # Validate
-                        result = validate_suggestion(suggestion, symbol.get("annotations", []))
-                        all_results.append(result)
-
-                        if verbose and suggestion.suggested_name:
-                            ref_count = len(refs)
+                        if result:
+                            all_results.append(result)
+                            if verbose:
+                                s = result.suggestion
+                                console.print(
+                                    f"  [green]→[/green] {s.original_name} → {s.suggested_name} "
+                                    f"({s.confidence:.0%}) [dim]({len(s.references)} refs)[/dim]"
+                                )
+                        elif verbose:
                             console.print(
-                                f"  [green]→[/green] {symbol['name']} → {suggestion.suggested_name} "
-                                f"({suggestion.confidence:.0%}) [dim]({ref_count} refs)[/dim]"
+                                f"  [yellow]Filtered:[/yellow] {symbol['name']} → "
+                                f"{suggestion.suggested_name} (hallucinated method-style name)"
                             )
 
                 except Exception as e:
@@ -942,141 +954,44 @@ def batch_retrieve(
             console.print(f"\n{skipped_count} batch(es) not yet completed. Run batch-status to check.")
         raise typer.Exit(0)
 
-    # Reconstruct all_symbols from batch jobs
-    for job_data in jobs_data:
-        all_symbols.extend(job_data.get("symbols", []))
+    # Reconstruct all_symbols as Symbol objects.
+    # Prefer the full all_symbols list from run metadata (includes blocked symbols),
+    # falling back to job-level symbols for backward compatibility.
+    from named.suggestions.common import export_reports, post_validate_results, reconstruct_symbol
 
-    # Post-validation: detect cross-suggestion naming conflicts
-    # In batch path, all_symbols is a list of dicts, not Symbol objects.
-    # detect_scope_conflicts handles Symbol objects, so we pass None here
-    # and rely on G5a (duplicate targets) only.
-    from named.validation.validator import detect_scope_conflicts
+    if run_metadata.get("all_symbols"):
+        all_symbol_dicts = run_metadata["all_symbols"]
+    else:
+        all_symbol_dicts = []
+        for job_data in jobs_data:
+            all_symbol_dicts.extend(job_data.get("symbols", []))
 
-    pre_valid = sum(1 for r in all_results if r.is_valid)
-    all_results = detect_scope_conflicts(all_results, all_symbols=None)
-    post_valid = sum(1 for r in all_results if r.is_valid)
-    conflicts_found = pre_valid - post_valid
+    all_symbols = [reconstruct_symbol(sd) for sd in all_symbol_dicts]
+
+    # Post-validation and export (shared with streaming mode)
+    all_results, conflicts_found = post_validate_results(all_results, all_symbols)
     if conflicts_found > 0:
         console.print(
             f"\n[yellow]Warning:[/yellow] Blocked {conflicts_found} suggestion(s) "
-            f"due to naming conflicts (duplicate targets)"
+            f"due to naming conflicts (duplicate targets, overrides, or shadow collisions)"
         )
 
-    # Get project path from first symbol
-    project_path = Path(all_symbols[0]["file"]).parent if all_symbols else Path(".")
+    project_path = Path(run_metadata.get("project_path", all_symbol_dicts[0]["file"])) if all_symbol_dicts else Path(".")
 
-    # Export results
-    console.print(f"[bold]Generating reports...[/bold]")
+    console.print(f"\n[bold]Generating reports...[/bold]")
+    paths = export_reports(all_results, all_symbols, output, project_path, model, format)
+    for fmt, path in paths.items():
+        console.print(f"  - {fmt.upper()}: {path}")
 
-    output.mkdir(parents=True, exist_ok=True)
-
-    if format in ("json", "all"):
-        from named.export.json_exporter import export_json_string
-        import json
-
-        # Need to convert symbol dicts back to Symbol objects for export
-        # For now, we'll use a simplified version
-        json_content = _export_batch_json(all_results, all_symbols, project_path)
-
-        json_path = output / "report.json"
-        with open(json_path, "w", encoding="utf-8") as f:
-            f.write(json_content)
-
-        console.print(f"  - JSON: {json_path}")
-
-    if format in ("md", "all"):
-        from named.export.markdown_exporter import _build_markdown_report
-        from datetime import datetime
-
-        # Build markdown report
-        md_content = _build_markdown_report_from_batch(all_results, all_symbols, project_path)
-
-        md_path = output / "report.md"
-        with open(md_path, "w", encoding="utf-8") as f:
-            f.write(md_content)
-
-        console.print(f"  - Markdown: {md_path}")
-
-    # Show results summary
     _show_results_summary(all_results)
 
     console.print("\n[bold green]Batch analysis complete![/bold green]")
     console.print(f"Reports saved to: {output.absolute()}\n")
 
 
-def _export_batch_json(results: list, symbols: list, project_path: Path) -> str:
-    """Export batch results to JSON format."""
-    import json
-    from datetime import datetime
-
-    # Build summary
-    total_symbols = len(symbols)
-    suggestions_count = sum(1 for r in results if r.suggestion.suggested_name)
-    valid_suggestions = sum(1 for r in results if r.is_valid and r.suggestion.suggested_name)
-    blocked_count = sum(1 for r in results if r.suggestion.blocked)
-
-    confidences = [r.suggestion.confidence for r in results if r.suggestion.suggested_name]
-    avg_confidence = sum(confidences) / len(confidences) if confidences else 0.0
-
-    summary = {
-        "total_symbols_analyzed": total_symbols,
-        "suggestions_generated": suggestions_count,
-        "valid_suggestions": valid_suggestions,
-        "blocked_suggestions": blocked_count,
-        "average_confidence": round(avg_confidence, 2),
-    }
-
-    report = {
-        "metadata": {
-            "project_path": str(project_path.absolute()),
-            "generated_at": datetime.now().isoformat(),
-            "llm_model": "gpt-4o",
-            "named_version": "0.4.0",
-            "processing_mode": "batch",
-        },
-        "summary": summary,
-        "suggestions": [r.to_dict() for r in results if r.suggestion.suggested_name],
-    }
-
-    return json.dumps(report, indent=2, ensure_ascii=False)
-
-
-def _build_markdown_report_from_batch(results: list, symbols: list, project_path: Path) -> str:
-    """Build markdown report from batch results."""
-    from datetime import datetime
-
-    lines = ["# Named Analysis Report\n"]
-    lines.append(f"**Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-    lines.append(f"**Project:** {project_path.absolute()}\n")
-    lines.append(f"**Model:** gpt-4o (batch mode)\n")
-    lines.append("\n## Summary\n")
-
-    total_symbols = len(symbols)
-    suggestions_count = sum(1 for r in results if r.suggestion.suggested_name)
-    valid_suggestions = sum(1 for r in results if r.is_valid and r.suggestion.suggested_name)
-
-    lines.append(f"- Total symbols analyzed: {total_symbols}\n")
-    lines.append(f"- Suggestions generated: {suggestions_count}\n")
-    lines.append(f"- Valid suggestions: {valid_suggestions}\n")
-
-    lines.append("\n## Suggestions\n")
-
-    for result in sorted(
-        [r for r in results if r.is_valid and r.suggestion.suggested_name],
-        key=lambda r: -r.suggestion.confidence,
-    ):
-        s = result.suggestion
-        lines.append(f"\n### {s.original_name} → {s.suggested_name}\n")
-        lines.append(f"**Confidence:** {s.confidence:.0%}\n")
-        lines.append(f"**Kind:** {s.symbol_kind}\n")
-        lines.append(f"**Reasoning:** {s.reasoning}\n")
-
-    return "".join(lines)
-
-
 def _symbol_to_dict(symbol) -> dict:
     """Convert Symbol to dict for batch processing."""
-    return {
+    d = {
         "name": symbol.name,
         "kind": symbol.kind,
         "annotations": symbol.annotations,
@@ -1085,19 +1000,73 @@ def _symbol_to_dict(symbol) -> dict:
         "line": symbol.location.line,
         "parent_class": symbol.parent_class,
     }
+    # Preserve fields needed by post-validation (override/shadow checks)
+    if symbol.modifiers:
+        d["modifiers"] = symbol.modifiers
+    if symbol.extends_type:
+        d["extends_type"] = symbol.extends_type
+    if symbol.implements_types:
+        d["implements_types"] = symbol.implements_types
+    if symbol.parameter_types:
+        d["parameter_types"] = symbol.parameter_types
+    if symbol.method_locals:
+        # Convert sets to lists for JSON serialization
+        d["method_locals"] = {k: list(v) for k, v in symbol.method_locals.items()}
+    return d
 
 
-def _save_batch_jobs(batch_jobs: list, output_path: Path) -> Path:
+def _save_batch_jobs(
+    batch_jobs: list,
+    output_path: Path,
+    run_id: str,
+    project_path: str,
+    model: str,
+    total_symbols: int,
+    all_symbols_dicts: list[dict] | None = None,
+) -> Path:
     """Save batch job information to JSON file."""
     import json
+    from datetime import datetime
 
-    jobs_data = [job.to_dict() for job in batch_jobs]
+    run_data = {
+        "run_id": run_id,
+        "created_at": datetime.now().isoformat(),
+        "project_path": project_path,
+        "model": model,
+        "total_symbols": total_symbols,
+        "total_batches": len(batch_jobs),
+        "jobs": [job.to_dict() for job in batch_jobs],
+    }
+    if all_symbols_dicts is not None:
+        run_data["all_symbols"] = all_symbols_dicts
 
     jobs_file = output_path / "batch_jobs.json"
     with open(jobs_file, "w", encoding="utf-8") as f:
-        json.dump(jobs_data, f, indent=2, ensure_ascii=False)
+        json.dump(run_data, f, indent=2, ensure_ascii=False)
 
     return jobs_file
+
+
+def _load_batch_jobs(file_path: Path) -> tuple[dict, list[dict]]:
+    """Load batch jobs file, handling both old (list) and new (object) formats.
+
+    Returns:
+        Tuple of (run_metadata, jobs_list).
+        run_metadata contains run_id, project_path, model, etc.
+        jobs_list is the list of job dicts.
+    """
+    import json
+
+    with open(file_path) as f:
+        data = json.load(f)
+
+    # New format: object with "jobs" key
+    if isinstance(data, dict) and "jobs" in data:
+        metadata = {k: v for k, v in data.items() if k != "jobs"}
+        return metadata, data["jobs"]
+
+    # Old format: flat list of jobs
+    return {}, data
 
 
 def _handle_batch_mode(
@@ -1136,54 +1105,163 @@ def _handle_batch_mode(
         base_url=settings.openai_base_url or None,
     )
 
-    # Group symbols into batches
-    batch_size = settings.batch_size
-    symbol_batches = [
-        analyzable[i : i + batch_size] for i in range(0, len(analyzable), batch_size)
-    ]
-
-    console.print(
-        f"Submitting {len(symbol_batches)} batch(es) of up to {batch_size} symbols each...\n"
-    )
-
-    # Get system prompt and rules context
+    # Get system prompt and rules context (same as streaming mode)
     from named.prompts import get_system_prompt, get_rules_context
     from named.rules.naming_rules import NAMING_RULES
     from named.rules.guardrails import GUARDRAILS
 
     system_prompt = get_system_prompt()
-    rules_context = get_rules_context(NAMING_RULES, GUARDRAILS)
+    rules_context = get_rules_context(NAMING_RULES, GUARDRAILS, include_schema=False)
 
-    # Submit all batches
-    batch_jobs = []
-    for i, batch_symbols in enumerate(symbol_batches):
-        # Convert symbols to dicts
-        symbol_dicts = [_symbol_to_dict(s) for s in batch_symbols]
+    # Group symbols by file (same as streaming mode)
+    symbols_by_file: dict[Path, list] = {}
+    for symbol in analyzable:
+        file_path = symbol.location.file
+        symbols_by_file.setdefault(file_path, []).append(symbol)
 
-        # Generate batch requests
-        requests = batch_client.create_batch_requests(
-            symbols=symbol_dicts, system_prompt=system_prompt, rules_context=rules_context
-        )
-
-        # Submit batch
+    # Build file groups with full source (same as streaming reads each file)
+    file_groups = []
+    flat_symbols = []
+    for file_path, file_symbols in symbols_by_file.items():
         try:
-            job = batch_client.submit_batch(
-                requests=requests,
-                symbols=symbol_dicts,
-                description=f"Named batch {i+1}/{len(symbol_batches)}",
-            )
-            batch_jobs.append(job)
-
-            console.print(
-                f"  [green]✓[/green] Batch {i+1} submitted (batch_id={job.batch_id})"
-            )
+            file_source = file_path.read_text(encoding="utf-8")
         except Exception as e:
-            console.print(f"  [red]✗[/red] Failed to submit batch {i+1}: {e}")
+            console.print(f"[yellow]Warning:[/yellow] Could not read {file_path}: {e}")
+            continue
+        symbol_dicts = [_symbol_to_dict(s) for s in file_symbols]
+        file_groups.append({
+            "file_path": str(file_path),
+            "file_source": file_source,
+            "symbols": symbol_dicts,
+        })
+        flat_symbols.extend(symbol_dicts)
+
+    # Create file-based batch requests (one per file/chunk, like streaming)
+    all_requests, full_file_map = batch_client.create_file_batch_requests(
+        file_groups=file_groups,
+        system_prompt=system_prompt,
+        rules_context=rules_context,
+    )
+
+    # Split requests into batches targeting batch_size symbols each.
+    # file_map indices must be remapped to be batch-local (starting from 0).
+    batch_size = settings.batch_size
+    batches = []  # list of (requests, symbols_slice, file_map_slice)
+    current_requests = []
+    current_file_map = {}
+    current_symbols = []
+    current_count = 0
+
+    for request in all_requests:
+        cid = request["custom_id"]
+        global_start, count = full_file_map[cid]
+
+        # If adding this request exceeds batch_size, flush current batch
+        if current_count + count > batch_size and current_requests:
+            batches.append((current_requests, current_symbols, current_file_map))
+            current_requests = []
+            current_file_map = {}
+            current_symbols = []
+            current_count = 0
+
+        current_requests.append(request)
+        # Remap to batch-local index
+        current_file_map[cid] = [current_count, count]
+        current_symbols.extend(flat_symbols[global_start : global_start + count])
+        current_count += count
+
+    if current_requests:
+        batches.append((current_requests, current_symbols, current_file_map))
+
+    console.print(
+        f"Submitting {len(batches)} batch(es) "
+        f"({len(all_requests)} file requests, {len(flat_symbols)} symbols)...\n"
+    )
+
+    # Generate run ID
+    import uuid
+    from datetime import datetime
+
+    run_id = f"run_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
+    console.print(f"[dim]Run ID: {run_id}[/dim]\n")
+
+    # Submit batches sequentially with retry on token limit
+    import time
+
+    batch_jobs = []
+    max_retries = 20
+    retry_wait = 30
+    validation_wait = 5
+
+    for i, (batch_requests, batch_symbols, batch_file_map) in enumerate(batches):
+        for attempt in range(max_retries):
+            try:
+                job = batch_client.submit_batch(
+                    requests=batch_requests,
+                    symbols=batch_symbols,
+                    description=f"Named {run_id} batch {i+1}/{len(batches)}",
+                    file_map=batch_file_map,
+                )
+            except Exception as e:
+                console.print(f"  [red]✗[/red] Failed to submit batch {i+1}: {e}")
+                raise typer.Exit(1)
+
+            # Wait briefly then check if the batch was accepted or rejected
+            time.sleep(validation_wait)
+            try:
+                status = batch_client.get_batch_status(job.batch_id)
+            except Exception:
+                status = "unknown"
+
+            if status == "failed":
+                try:
+                    batch_resp = batch_client.client.batches.retrieve(job.batch_id)
+                    errors = batch_resp.errors
+                    is_token_limit = errors and any(
+                        "token_limit" in (e.code or "") or "enqueued" in (e.message or "")
+                        for e in (errors.data or [])
+                    )
+                except Exception:
+                    is_token_limit = False
+
+                if is_token_limit:
+                    console.print(
+                        f"  [yellow]⏱[/yellow] Batch {i+1}: Queue full, "
+                        f"waiting {retry_wait}s for space... "
+                        f"(attempt {attempt+1}/{max_retries})"
+                    )
+                    time.sleep(retry_wait)
+                    continue
+                else:
+                    console.print(f"  [red]✗[/red] Batch {i+1} failed: {errors}")
+                    raise typer.Exit(1)
+            else:
+                batch_jobs.append(job)
+                console.print(
+                    f"  [green]✓[/green] Batch {i+1} submitted (batch_id={job.batch_id})"
+                )
+                break
+        else:
+            console.print(
+                f"  [red]✗[/red] Batch {i+1}: Failed after {max_retries} retries. "
+                f"Queue never cleared."
+            )
             raise typer.Exit(1)
 
     # Save batch job info
     output.mkdir(parents=True, exist_ok=True)
-    jobs_file = _save_batch_jobs(batch_jobs, output)
+    # Serialize all symbols (including blocked) for report parity with streaming
+    all_symbols_dicts = [_symbol_to_dict(s) for s in all_symbols]
+
+    jobs_file = _save_batch_jobs(
+        batch_jobs,
+        output,
+        run_id=run_id,
+        project_path=str(project_path),
+        model=model,
+        total_symbols=len(all_symbols),
+        all_symbols_dicts=all_symbols_dicts,
+    )
 
     console.print(f"\n[green]✓[/green] All batches submitted!")
     console.print(f"\nBatch jobs saved to: {jobs_file}")

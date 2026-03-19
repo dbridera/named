@@ -34,24 +34,33 @@ def test_batch_job_to_dict():
     assert result["error"] is None
 
 
-def test_create_batch_requests():
-    """Test batch request generation."""
+def test_create_file_batch_requests():
+    """Test file-based batch request generation."""
     client = BatchAnalysisClient(api_key="test-key", model="gpt-4o")
 
-    symbols = [
-        {"name": "foo", "kind": "method", "context": "void foo() {}"},
-        {"name": "bar", "kind": "field", "context": "int bar;"},
+    file_groups = [
+        {
+            "file_path": "src/Foo.java",
+            "file_source": "public class Foo { void foo() {} int bar; }",
+            "symbols": [
+                {"name": "foo", "kind": "method", "context": "void foo() {}"},
+                {"name": "bar", "kind": "field", "context": "int bar;"},
+            ],
+        }
     ]
 
     system_prompt = "You are a naming expert."
     rules_context = "Follow Java naming conventions."
 
-    requests = client.create_batch_requests(symbols, system_prompt, rules_context)
+    requests, file_map = client.create_file_batch_requests(
+        file_groups, system_prompt, rules_context
+    )
 
-    assert len(requests) == 2
+    # One file → one request
+    assert len(requests) == 1
 
-    # Check first request
-    assert requests[0]["custom_id"] == "symbol-0"
+    # Check request structure
+    assert requests[0]["custom_id"] == "file-0-chunk-0"
     assert requests[0]["method"] == "POST"
     assert requests[0]["url"] == "/v1/chat/completions"
     assert requests[0]["body"]["model"] == "gpt-4o"
@@ -59,30 +68,43 @@ def test_create_batch_requests():
     assert requests[0]["body"]["messages"][0]["role"] == "system"
     assert requests[0]["body"]["messages"][1]["role"] == "user"
 
-    # Check second request
-    assert requests[1]["custom_id"] == "symbol-1"
+    # Check file_map
+    assert "file-0-chunk-0" in file_map
+    assert file_map["file-0-chunk-0"] == [0, 2]
+
+    # Check that prompt contains file source and symbol names
+    user_prompt = requests[0]["body"]["messages"][1]["content"]
+    assert "Foo.java" in user_prompt
+    assert "public class Foo" in user_prompt
+    assert "foo" in user_prompt
+    assert "bar" in user_prompt
 
 
-def test_build_symbol_prompt():
-    """Test symbol prompt building."""
+def test_file_batch_request_prompt_contains_full_source():
+    """Test that file-based requests include full file source like streaming."""
     client = BatchAnalysisClient(api_key="test-key")
 
-    symbol = {
-        "name": "foo",
-        "kind": "method",
-        "context": "void foo() { }",
-        "annotations": ["Override", "Deprecated"],
-    }
-    rules_context = "Follow naming rules."
+    file_source = "public class Account {\n    private String acctNum;\n    public void doIt() {}\n}"
+    file_groups = [
+        {
+            "file_path": "src/Account.java",
+            "file_source": file_source,
+            "symbols": [
+                {"name": "acctNum", "kind": "field"},
+                {"name": "doIt", "kind": "method"},
+            ],
+        }
+    ]
 
-    prompt = client._build_symbol_prompt(symbol, rules_context)
+    requests, file_map = client.create_file_batch_requests(
+        file_groups, "system", "rules"
+    )
 
-    assert "foo" in prompt
-    assert "method" in prompt
-    assert "void foo() { }" in prompt
-    assert "Override" in prompt
-    assert "Deprecated" in prompt
-    assert "Follow naming rules" in prompt
+    user_prompt = requests[0]["body"]["messages"][1]["content"]
+    assert "Account.java" in user_prompt
+    assert "private String acctNum" in user_prompt
+    assert "public void doIt" in user_prompt
+    assert file_map["file-0-chunk-0"] == [0, 2]
 
 
 @patch("named.suggestions.client_factory.OpenAI")

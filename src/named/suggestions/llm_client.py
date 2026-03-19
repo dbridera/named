@@ -5,27 +5,89 @@ from typing import Any
 
 from named.config import get_settings
 from named.logging import get_logger
-from named.suggestions.client_factory import create_openai_client
 from named.rules.models import NameSuggestion
+from named.suggestions.client_factory import create_openai_client
+from named.suggestions.common import (
+    CHUNK_SIZE,
+    CHUNK_THRESHOLD,
+    METHOD_PREFIXES,
+    TOKENS_BASE,
+    TOKENS_MAX,
+    TOKENS_MIN,
+    TOKENS_PER_SYMBOL,
+    is_hallucinated,
+    strip_markdown_fences,
+)
 
 logger = get_logger("llm")
 
-# Method-style name prefixes that are invalid for fields/parameters.
-# Catching LLM hallucinations like "getBalance" suggested for a parameter.
-_METHOD_PREFIXES = (
-    "get", "set", "is", "has", "find", "fetch", "load",
-    "save", "update", "delete", "create", "build",
-)
+# Re-export for backward compatibility (used by batch_retrieve in cli.py)
+_METHOD_PREFIXES = METHOD_PREFIXES
+_CHUNK_THRESHOLD = CHUNK_THRESHOLD
+_CHUNK_SIZE = CHUNK_SIZE
+_TOKENS_PER_SYMBOL = TOKENS_PER_SYMBOL
+_TOKENS_BASE = TOKENS_BASE
+_TOKENS_MAX = TOKENS_MAX
+_TOKENS_MIN = TOKENS_MIN
 
-# Files with more symbols than _CHUNK_THRESHOLD are split into chunks of _CHUNK_SIZE.
-_CHUNK_THRESHOLD = 50
-_CHUNK_SIZE = 25
 
-# Tokens per symbol output entry (rough estimate for JSON output sizing).
-_TOKENS_PER_SYMBOL = 120
-_TOKENS_BASE = 500
-_TOKENS_MAX = 8000
-_TOKENS_MIN = 1000
+def parse_llm_response(data: dict[str, Any], symbol_name: str) -> "NameSuggestion | None":
+    """Parse a batch API LLM response into a NameSuggestion.
+
+    Handles the per-symbol response format returned by the Batch API,
+    where the LLM returns a ``suggestions`` array with camelCase keys.
+
+    Args:
+        data: Parsed JSON dict from the LLM response.
+        symbol_name: Original symbol name for fallback matching.
+
+    Returns:
+        NameSuggestion if a rename is suggested, None otherwise.
+    """
+    # Format 1: {"needs_rename": bool, "suggestion": {...}}
+    if "needs_rename" in data:
+        if not data.get("needs_rename"):
+            return None
+        s = data.get("suggestion", {})
+        suggested = s.get("suggested_name") or s.get("suggestedName", "")
+        if not suggested:
+            return None
+        return NameSuggestion(
+            original_name=s.get("original_name") or s.get("originalName", symbol_name),
+            suggested_name=suggested,
+            symbol_kind=s.get("symbol_kind") or s.get("symbolKind", ""),
+            confidence=s.get("confidence", 0.0),
+            rationale=s.get("rationale", ""),
+            rules_addressed=s.get("rules_addressed") or s.get("rulesAddressed", []),
+        )
+
+    # Format 2: {"suggestions": [{"originalName": ..., "suggestedName": ..., ...}]}
+    suggestions_list = data.get("suggestions", [])
+    if not suggestions_list:
+        return None
+
+    # Find the entry matching our symbol (or take the first one)
+    entry = None
+    for item in suggestions_list:
+        orig = item.get("originalName") or item.get("original_name", "")
+        if orig == symbol_name:
+            entry = item
+            break
+    if entry is None:
+        entry = suggestions_list[0]
+
+    suggested = entry.get("suggestedName") or entry.get("suggested_name", "")
+    if not suggested:
+        return None
+
+    return NameSuggestion(
+        original_name=entry.get("originalName") or entry.get("original_name", symbol_name),
+        suggested_name=suggested,
+        symbol_kind=entry.get("symbolKind") or entry.get("symbol_kind", ""),
+        confidence=entry.get("confidence", 0.0),
+        rationale=entry.get("rationale", ""),
+        rules_addressed=entry.get("rulesAddressed") or entry.get("rules_addressed", []),
+    )
 
 
 class LLMError(Exception):
@@ -169,36 +231,11 @@ class LLMClient:
 
     def _parse_json_response(self, content: str) -> dict[str, Any]:
         """Parse JSON from LLM response, handling markdown code blocks."""
-        content = content.strip()
-
-        if content.startswith("```json"):
-            content = content[7:]
-        elif content.startswith("```"):
-            content = content[3:]
-
-        if content.endswith("```"):
-            content = content[:-3]
-
-        content = content.strip()
-
-        return json.loads(content)
+        return json.loads(strip_markdown_fences(content))
 
     def _is_hallucinated(self, suggested_name: str, symbol_kind: str) -> bool:
-        """Return True if the suggestion looks like a method name for a non-method symbol.
-
-        Detects the common hallucination where the LLM suggests a getter/setter-style
-        name for a field or parameter (e.g., 'getBalance' suggested for a parameter).
-        """
-        if symbol_kind not in ("field", "parameter", "constant"):
-            return False
-        for prefix in _METHOD_PREFIXES:
-            if (
-                suggested_name.startswith(prefix)
-                and len(suggested_name) > len(prefix)
-                and suggested_name[len(prefix)].isupper()
-            ):
-                return True
-        return False
+        """Return True if the suggestion looks like a method name for a non-method symbol."""
+        return is_hallucinated(suggested_name, symbol_kind)
 
     def analyze_symbol(
         self,
