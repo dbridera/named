@@ -453,3 +453,92 @@ def test_parse_batch_results_missing_choices():
     parsed = client.parse_batch_results(results, batch_job)
 
     assert len(parsed) == 0  # Should skip missing choices
+
+
+@patch("named.suggestions.client_factory.OpenAI")
+def test_get_batch(mock_openai):
+    """Test getting full batch details."""
+    mock_client = Mock()
+    mock_openai.return_value = mock_client
+
+    mock_batch = Mock()
+    mock_batch.id = "batch-123"
+    mock_batch.input_file_id = "file-456"
+    mock_client.batches.retrieve.return_value = mock_batch
+
+    client = BatchAnalysisClient(api_key="test-key")
+    client.client = mock_client
+
+    result = client.get_batch("batch-123")
+
+    assert result.id == "batch-123"
+    assert result.input_file_id == "file-456"
+    mock_client.batches.retrieve.assert_called_once_with("batch-123")
+
+
+@patch("named.suggestions.client_factory.OpenAI")
+def test_cancel_batch(mock_openai):
+    """Test cancelling a batch job."""
+    mock_client = Mock()
+    mock_openai.return_value = mock_client
+
+    client = BatchAnalysisClient(api_key="test-key")
+    client.client = mock_client
+
+    client.cancel_batch("batch-123")
+
+    mock_client.batches.cancel.assert_called_once_with("batch-123")
+
+
+@patch("named.suggestions.client_factory.OpenAI")
+def test_delete_file(mock_openai):
+    """Test deleting a file."""
+    mock_client = Mock()
+    mock_openai.return_value = mock_client
+
+    client = BatchAnalysisClient(api_key="test-key")
+    client.client = mock_client
+
+    client.delete_file("file-123")
+
+    mock_client.files.delete.assert_called_once_with("file-123")
+
+
+@patch("named.suggestions.client_factory.OpenAI")
+def test_list_files(mock_openai):
+    """Test listing files with purpose filter."""
+    mock_client = Mock()
+    mock_openai.return_value = mock_client
+
+    mock_file1 = Mock(id="file-1", filename="batch_1.jsonl")
+    mock_file2 = Mock(id="file-2", filename="batch_2.jsonl")
+    mock_page = Mock()
+    mock_page.data = [mock_file1, mock_file2]
+    mock_client.files.list.return_value = mock_page
+
+    client = BatchAnalysisClient(api_key="test-key")
+    client.client = mock_client
+
+    result = client.list_files(purpose="batch")
+
+    assert len(result) == 2
+    assert result[0].id == "file-1"
+    mock_client.files.list.assert_called_once_with(limit=500, purpose="batch")
+
+
+@patch("named.suggestions.client_factory.OpenAI")
+def test_list_files_no_purpose(mock_openai):
+    """Test listing files without purpose filter."""
+    mock_client = Mock()
+    mock_openai.return_value = mock_client
+
+    mock_page = Mock()
+    mock_page.data = []
+    mock_client.files.list.return_value = mock_page
+
+    client = BatchAnalysisClient(api_key="test-key")
+    client.client = mock_client
+
+    client.list_files(purpose=None)
+
+    mock_client.files.list.assert_called_once_with(limit=500)

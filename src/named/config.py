@@ -21,6 +21,31 @@ class Settings(BaseSettings):
         description="Custom base URL for OpenAI-compatible API (e.g., Azure AI Foundry)",
     )
 
+    # Azure Workload Identity (env vars without NAMED_ prefix)
+    azure_openai_endpoint: str = Field(default="", validation_alias="AZURE_OPENAI_ENDPOINT")
+    azure_openai_deployment_name: str = Field(default="", validation_alias="AZURE_OPENAI_DEPLOYMENT_NAME")
+    azure_client_id: str = Field(default="", validation_alias="AZURE_CLIENT_ID")
+    azure_openai_api_version: str = Field(
+        default="2025-01-01-preview", validation_alias="AZURE_OPENAI_API_VERSION"
+    )
+    azure_openai_batch_deployment_name: str = Field(
+        default="",
+        description="Deployment for batch jobs (e.g. gpt-4o-batch-v1). If set, batch mode uses this instead of AZURE_OPENAI_DEPLOYMENT_NAME.",
+        validation_alias="AZURE_OPENAI_BATCH_DEPLOYMENT_NAME",
+    )
+
+    def effective_openai_model(self) -> str:
+        """Model/deployment for streaming (and batch if no batch-specific one)."""
+        if self.azure_openai_endpoint and self.azure_openai_deployment_name:
+            return self.azure_openai_deployment_name
+        return self.openai_model
+
+    def effective_batch_model(self) -> str:
+        """Model/deployment for batch API (use batch deployment if configured)."""
+        if self.azure_openai_batch_deployment_name:
+            return self.azure_openai_batch_deployment_name
+        return self.effective_openai_model()
+
     # Analysis settings
     confidence_threshold: float = Field(
         default=0.80, description="Minimum confidence threshold for suggestions"

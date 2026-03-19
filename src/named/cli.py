@@ -40,6 +40,40 @@ def main():
 
 
 @app.command()
+def config():
+    """Show current configuration (env + effective values). No secrets printed."""
+    from named.config import get_settings
+
+    settings = get_settings()
+    console.print("\n[bold]Named configuration[/bold]\n")
+    # Auth
+    has_key = bool(settings.openai_api_key)
+    has_azure = bool(settings.azure_openai_endpoint and settings.azure_openai_deployment_name)
+    console.print("[bold]Auth:[/bold]")
+    console.print(f"  OpenAI API key: {'(set)' if has_key else '(not set)'}")
+    console.print(f"  Azure: {'(endpoint + deployment set)' if has_azure else '(not set)'}\n")
+    # URLs / models
+    console.print("[bold]OpenAI / Azure:[/bold]")
+    console.print(f"  openai_base_url: {settings.openai_base_url or '(not set)'}")
+    console.print(f"  openai_model: {settings.openai_model}")
+    if settings.azure_openai_endpoint:
+        console.print(f"  AZURE_OPENAI_ENDPOINT: {settings.azure_openai_endpoint}")
+    console.print(f"  AZURE_OPENAI_DEPLOYMENT_NAME: {settings.azure_openai_deployment_name or '(not set)'}")
+    console.print(f"  AZURE_OPENAI_BATCH_DEPLOYMENT_NAME: {settings.azure_openai_batch_deployment_name or '(not set)'}")
+    console.print(f"  AZURE_OPENAI_API_VERSION: {settings.azure_openai_api_version}")
+    console.print(f"  AZURE_CLIENT_ID: {settings.azure_client_id or '(not set)'}\n")
+    # Effective
+    console.print("[bold]Effective (used at runtime):[/bold]")
+    console.print(f"  effective_openai_model (streaming): {settings.effective_openai_model()}")
+    console.print(f"  effective_batch_model (batch): {settings.effective_batch_model()}\n")
+    # Batch
+    console.print("[bold]Batch:[/bold]")
+    console.print(f"  batch_size: {settings.batch_size}")
+    console.print(f"  batch_poll_interval: {settings.batch_poll_interval}s")
+    console.print()
+
+
+@app.command()
 def analyze(
     path: Path = typer.Argument(
         ...,
@@ -987,6 +1021,165 @@ def batch_retrieve(
 
     console.print("\n[bold green]Batch analysis complete![/bold green]")
     console.print(f"Reports saved to: {output.absolute()}\n")
+
+
+@app.command()
+def batch_cancel(
+    batch_jobs: Optional[Path] = typer.Option(
+        None,
+        "--batch-jobs",
+        help="Path to batch_jobs.json (from a previous analyze --mode batch run).",
+        exists=True,
+    ),
+    ids_file: Optional[Path] = typer.Option(
+        None,
+        "--ids-file",
+        help="Plain text file with one batch_id per line.",
+        exists=True,
+    ),
+    delete_files: bool = typer.Option(
+        True,
+        "--delete-files/--no-delete-files",
+        help="Also delete input files to free the 500-file quota.",
+    ),
+):
+    """Cancel batch jobs and optionally delete their input files.
+
+    Use when a batch run didn't finish and you want to free quota and start over.
+
+    Examples:
+        named batch-cancel --batch-jobs ./named-report/batch_jobs.json
+        named batch-cancel --ids-file batch_ids.txt --no-delete-files
+    """
+    from named.config import get_settings
+    from named.suggestions.batch_client import BatchAnalysisClient
+
+    if not batch_jobs and not ids_file:
+        console.print("[red]Error:[/red] Provide either --batch-jobs or --ids-file.")
+        raise typer.Exit(1)
+    if batch_jobs and ids_file:
+        console.print("[red]Error:[/red] Provide only one of --batch-jobs or --ids-file.")
+        raise typer.Exit(1)
+
+    settings = get_settings()
+    if not settings.openai_api_key and not settings.azure_openai_endpoint:
+        console.print(
+            "[red]Error:[/red] Set NAMED_OPENAI_API_KEY or Azure Workload Identity "
+            "(AZURE_OPENAI_ENDPOINT + AZURE_OPENAI_DEPLOYMENT_NAME)."
+        )
+        raise typer.Exit(1)
+
+    # Collect (batch_id, input_file_id or None)
+    entries: list[tuple[str, str | None]] = []
+    if batch_jobs:
+        _, jobs_list = _load_batch_jobs(batch_jobs)
+        for job in jobs_list:
+            bid = job.get("batch_id")
+            fid = job.get("input_file_id")
+            if bid:
+                entries.append((bid, fid))
+    else:
+        with open(ids_file, encoding="utf-8") as f:
+            for line in f:
+                bid = line.strip()
+                if bid and not bid.startswith("#"):
+                    entries.append((bid, None))
+
+    if not entries:
+        console.print("[yellow]No batch IDs to cancel.[/yellow]")
+        raise typer.Exit(0)
+
+    batch_client = BatchAnalysisClient(
+        api_key=settings.openai_api_key,
+        model=settings.effective_batch_model(),
+        base_url=settings.openai_base_url or None,
+    )
+    console.print(f"Cancelling {len(entries)} batch job(s)...\n")
+
+    cancelled = 0
+    deleted = 0
+    errors = 0
+    for batch_id, input_file_id in entries:
+        try:
+            if input_file_id is None:
+                batch = batch_client.get_batch(batch_id)
+                input_file_id = getattr(batch, "input_file_id", None)
+            batch_client.cancel_batch(batch_id)
+            cancelled += 1
+            console.print(f"  [green]Cancelled[/green] {batch_id}")
+            if delete_files and input_file_id:
+                batch_client.delete_file(input_file_id)
+                deleted += 1
+                console.print(f"    Deleted file {input_file_id}")
+        except Exception as e:
+            errors += 1
+            console.print(f"  [red]Failed[/red] {batch_id}: {e}")
+
+    console.print(
+        f"\n[bold]Done:[/bold] {cancelled} cancelled, {deleted} file(s) deleted, {errors} error(s).\n"
+    )
+
+
+@app.command()
+def files_cleanup(
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        help="Only list files, do not delete.",
+    ),
+    purpose: str = typer.Option(
+        "batch",
+        "--purpose",
+        help="File purpose to list/delete (default: batch). Use 'all' to skip filter.",
+    ),
+):
+    """List and delete files from the API to free the 500-file quota.
+
+    Examples:
+        named files-cleanup --dry-run
+        named files-cleanup
+        named files-cleanup --purpose all
+    """
+    from named.config import get_settings
+    from named.suggestions.batch_client import BatchAnalysisClient
+
+    settings = get_settings()
+    if not settings.openai_api_key and not settings.azure_openai_endpoint:
+        console.print(
+            "[red]Error:[/red] Set NAMED_OPENAI_API_KEY or Azure Workload Identity "
+            "(AZURE_OPENAI_ENDPOINT + AZURE_OPENAI_DEPLOYMENT_NAME)."
+        )
+        raise typer.Exit(1)
+
+    client = BatchAnalysisClient(
+        api_key=settings.openai_api_key,
+        model=settings.effective_batch_model(),
+        base_url=settings.openai_base_url or None,
+    )
+    purpose_filter = None if purpose == "all" else purpose
+    files = client.list_files(purpose=purpose_filter, limit=1000)
+    console.print(f"Found {len(files)} file(s).\n")
+    if not files:
+        raise typer.Exit(0)
+    if dry_run:
+        for f in files:
+            console.print(f"  [dim]{getattr(f, 'id', f)}[/dim] {getattr(f, 'filename', '')}")
+        console.print("\n[yellow]Dry run: no files deleted.[/yellow]\n")
+        raise typer.Exit(0)
+    deleted_count = 0
+    error_count = 0
+    for f in files:
+        fid = getattr(f, "id", None)
+        if not fid:
+            continue
+        try:
+            client.delete_file(fid)
+            deleted_count += 1
+            console.print(f"  [green]Deleted[/green] {fid}")
+        except Exception as e:
+            error_count += 1
+            console.print(f"  [red]Failed[/red] {fid}: {e}")
+    console.print(f"\n[bold]Done:[/bold] {deleted_count} deleted, {error_count} error(s).\n")
 
 
 def _symbol_to_dict(symbol) -> dict:

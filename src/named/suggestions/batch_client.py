@@ -1,5 +1,6 @@
 """OpenAI Batch API client for asynchronous symbol analysis."""
 
+import io
 import json
 import time
 from dataclasses import dataclass, field
@@ -211,18 +212,21 @@ class BatchAnalysisClient:
         jsonl_lines = [json.dumps(req) for req in requests]
         jsonl_content = "\n".join(jsonl_lines)
 
-        # Upload file
+        # Upload file (filename must end in .jsonl for Azure; expires_after frees quota)
         logger.info(f"Uploading batch file with {len(requests)} requests...")
         try:
+            content_bytes = jsonl_content.encode("utf-8")
             file_response = self.client.files.create(
-                file=jsonl_content.encode("utf-8"), purpose="batch"
+                file=("batch_requests.jsonl", io.BytesIO(content_bytes)),
+                purpose="batch",
+                expires_after={"anchor": "created_at", "seconds": 259200},  # 3 days
             )
             logger.info(f"File uploaded successfully: {file_response.id}")
         except Exception as e:
             logger.error(f"Failed to upload batch file: {e}")
             raise
 
-        # Create batch
+        # Create batch (output_expires_after so output files auto-expire too)
         logger.info(f"Creating batch job (file_id={file_response.id})...")
         try:
             batch_response = self.client.batches.create(
@@ -230,6 +234,12 @@ class BatchAnalysisClient:
                 endpoint="/v1/chat/completions",
                 completion_window="24h",
                 metadata={"description": description},
+                extra_body={
+                    "output_expires_after": {
+                        "anchor": "created_at",
+                        "seconds": 259200,  # 3 days
+                    }
+                },
             )
             logger.info(f"Batch created successfully: {batch_response.id}")
         except Exception as e:
@@ -437,3 +447,33 @@ class BatchAnalysisClient:
         except Exception as e:
             logger.error(f"Failed to get batch status: {e}")
             raise
+
+    def get_batch(self, batch_id: str) -> Any:
+        """Get full batch job details (e.g. input_file_id for cleanup)."""
+        return self.client.batches.retrieve(batch_id)
+
+    def cancel_batch(self, batch_id: str) -> None:
+        """Cancel an in-progress batch job."""
+        self.client.batches.cancel(batch_id)
+        logger.info(f"Cancelled batch {batch_id}")
+
+    def delete_file(self, file_id: str) -> None:
+        """Delete a file from the API."""
+        self.client.files.delete(file_id)
+        logger.info(f"Deleted file {file_id}")
+
+    def list_files(self, purpose: str | None = "batch", limit: int = 500) -> list[Any]:
+        """List files in the API.
+
+        Args:
+            purpose: Filter by purpose (default batch); None for all.
+            limit: Max files to return per page.
+
+        Returns:
+            List of file objects.
+        """
+        params: dict[str, Any] = {"limit": limit}
+        if purpose is not None:
+            params["purpose"] = purpose
+        page = self.client.files.list(**params)
+        return list(page.data)

@@ -116,7 +116,7 @@ class LLMClient:
         """
         settings = get_settings()
         self.api_key = api_key or settings.openai_api_key
-        self.model = model or settings.openai_model
+        self.model = model or settings.effective_openai_model()
         self.verbose = verbose
         self._total_tokens = 0
         self._request_count = 0
