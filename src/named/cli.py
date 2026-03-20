@@ -246,11 +246,13 @@ def analyze(
     try:
         from rich.progress import BarColumn, TaskProgressColumn, TimeRemainingColumn
 
+        from named.analysis.reference_finder import clear_ast_cache
         from named.prompts import get_rules_context
         from named.rules.guardrails import GUARDRAILS
         from named.rules.naming_rules import NAMING_RULES
         from named.suggestions.llm_client import LLMClient, LLMError
 
+        clear_ast_cache()
         client = LLMClient(model=model, verbose=verbose)
 
         # Pre-render rules context once — reused for every file
@@ -872,6 +874,10 @@ def batch_retrieve(
         api_key=settings.openai_api_key,
         base_url=settings.openai_base_url or None,
     )
+
+    # Clear AST cache so each file is parsed only once across all suggestions
+    from named.analysis.reference_finder import clear_ast_cache
+    clear_ast_cache()
 
     # Collect all java files across all batch jobs for reference finding
     all_java_files = list(set(

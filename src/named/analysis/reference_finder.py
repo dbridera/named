@@ -17,6 +17,43 @@ from named.logging import get_logger
 
 logger = get_logger("reference_finder")
 
+# Cache: Path -> (source_code, source_lines, tree_or_none)
+# tree_or_none is None when parsing failed but file was readable.
+_ast_cache: dict[Path, tuple[str, list[str], Any]] = {}
+
+
+def clear_ast_cache() -> None:
+    """Clear the parsed AST cache. Call between independent analysis runs."""
+    _ast_cache.clear()
+
+
+def _get_parsed_file(java_file: Path) -> tuple[list[str], Any] | None:
+    """Return (source_lines, tree_or_none) from cache or by parsing.
+
+    Returns None only if the file cannot be read at all.
+    tree is None when the file has syntax errors but was readable.
+    """
+    if java_file in _ast_cache:
+        _, lines, tree = _ast_cache[java_file]
+        return lines, tree
+
+    try:
+        source_code = java_file.read_text(encoding="utf-8")
+    except Exception as e:
+        logger.debug(f"Failed to read {java_file}: {e}")
+        return None
+
+    source_lines = source_code.split("\n")
+    try:
+        tree = javalang.parse.parse(source_code)
+    except Exception as e:
+        logger.debug(f"Failed to parse {java_file}: {e}")
+        tree = None
+
+    _ast_cache[java_file] = (source_code, source_lines, tree)
+    return source_lines, tree
+
+
 UsageType = Literal["read", "write", "call", "instantiate", "type_reference", "import"]
 
 
@@ -85,29 +122,28 @@ def _find_references_in_file(
     parent_class: str | None,
 ) -> list[SymbolReference]:
     """Find references to a symbol in a single file."""
+    parsed = _get_parsed_file(java_file)
+    if parsed is None:
+        return []
+
+    source_lines, tree = parsed
     references = []
 
-    try:
-        source_code = java_file.read_text(encoding="utf-8")
-        source_lines = source_code.split("\n")
-        tree = javalang.parse.parse(source_code)
-    except Exception as e:
-        logger.debug(f"Failed to parse {java_file}: {e}")
-        return references
-
-    # Find references based on symbol kind
-    if symbol_kind == "class" or symbol_kind == "interface":
-        references.extend(_find_class_references(symbol_name, tree, java_file, source_lines))
-        references.extend(_find_import_references(symbol_name, java_file, source_lines))
-    elif symbol_kind == "method":
-        references.extend(_find_method_references(symbol_name, tree, java_file, source_lines))
-    elif symbol_kind == "field" or symbol_kind == "constant":
-        references.extend(_find_field_references(symbol_name, tree, java_file, source_lines))
-    elif symbol_kind == "parameter" or symbol_kind == "variable":
-        references.extend(_find_variable_references(symbol_name, tree, java_file, source_lines))
+    # AST-based search (skip if file had parse errors)
+    if tree is not None:
+        if symbol_kind == "class" or symbol_kind == "interface":
+            references.extend(_find_class_references(symbol_name, tree, java_file, source_lines))
+            references.extend(_find_import_references(symbol_name, java_file, source_lines))
+        elif symbol_kind == "method":
+            references.extend(_find_method_references(symbol_name, tree, java_file, source_lines))
+        elif symbol_kind == "field" or symbol_kind == "constant":
+            references.extend(_find_field_references(symbol_name, tree, java_file, source_lines))
+        elif symbol_kind == "parameter" or symbol_kind == "variable":
+            references.extend(_find_variable_references(symbol_name, tree, java_file, source_lines))
 
     # Text-based fallback for field/parameter/variable references
     # Catches this.field patterns and other usages the AST may miss
+    # Works even when AST parse failed since it only needs source_lines
     if symbol_kind in ("field", "constant", "parameter", "variable"):
         text_refs = _find_text_references(symbol_name, java_file, source_lines, references)
         references.extend(text_refs)
